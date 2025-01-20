@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from decouple import config
+
+SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-ld!$v-9h%j)4f*2w$q5a^8v(gs-q4==z-2qh+0jpys8p9if&v8')
+DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ld!$v-9h%j)4f*2w$q5a^8v(gs-q4==z-2qh+0jpys8p9if&v8'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-ld!$v-9h%j)4f*2w$q5a^8v(gs-q4==z-2qh+0jpys8p9if&v8')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if not DEBUG else ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -37,8 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'tracker',
-    'corsheaders',
+    'tracker',                  # RubikLog app
+    'corsheaders',              # Enable CORS for frontend-backend communication
 ]
 
 MIDDLEWARE = [
@@ -52,6 +57,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
+# Allow communication from React frontend
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
 ROOT_URLCONF = 'RubikLog.urls'
@@ -81,15 +87,13 @@ WSGI_APPLICATION = 'RubikLog.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rubiklogdb',
-        'USER': 'postgres',  # Adjust if necessary
-        'PASSWORD': 'shreyuu',      # Set if you have a password
-        'HOST': 'localhost', # Set if you're using a different host
-        'PORT': '',          # Use default port if blank, or specify your own
+        'NAME': os.getenv('POSTGRES_DB', 'rubiklogdb'),
+        'USER': os.getenv('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'shreyuu'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
