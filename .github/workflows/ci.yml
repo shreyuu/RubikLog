@@ -66,6 +66,7 @@ jobs:
         working-directory: RubikLog/frontend
         run: |
           npm ci
+          npm install @testing-library/react --save-dev
 
       - name: Run frontend tests
         working-directory: RubikLog/frontend
