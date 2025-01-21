@@ -8,5 +8,6 @@ dnspython==2.7.0
 psycopg2==2.9.10
 psycopg2-binary==2.9.10
 pymongo==4.10.1
+python-decouple==3.8
 pytz==2024.2
 sqlparse==0.5.3
