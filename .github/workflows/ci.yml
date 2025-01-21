@@ -66,16 +66,13 @@ jobs:
         working-directory: RubikLog/frontend
         run: |
           npm ci
-
-      - name: Install jest-dom
-        working-directory: RubikLog/frontend
-        run: |
-          npm install @testing-library/jest-dom --save-dev
+          npm install @testing-library/react --save-dev
 
       - name: Run frontend tests
         working-directory: RubikLog/frontend
         run: |
-          npm test -- --watchAll=false
+          npm install --save-dev @babel/plugin-proposal-private-property-in-object
+          CI=true npm test -- --watchAll=false
 
       - name: Build frontend
         working-directory: RubikLog/frontend
