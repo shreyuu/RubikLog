@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'tracker',                  # RubikLog app
     'corsheaders',              # Enable CORS for frontend-backend communication
-    'rest-framework'
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
