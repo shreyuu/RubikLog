@@ -67,6 +67,11 @@ jobs:
         run: |
           npm ci
 
+      - name: Install jest-dom
+        working-directory: RubikLog/frontend
+        run: |
+          npm install @testing-library/jest-dom --save-dev
+
       - name: Run frontend tests
         working-directory: RubikLog/frontend
         run: |
