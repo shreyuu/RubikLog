@@ -17,7 +17,7 @@ jobs:
         image: postgres:14
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: shreyuu
           POSTGRES_DB: rubiklogdb
         options: >-
           --health-cmd="pg_isready -U postgres"
@@ -27,7 +27,7 @@ jobs:
         ports:
           - 5432:5432
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/rubiklogdb
+      DATABASE_URL: postgres://postgres:shreyuu@localhost:5432/rubiklogdb
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
