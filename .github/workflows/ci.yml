@@ -67,6 +67,7 @@ jobs:
         run: |
           npm ci
           npm install @testing-library/react --save-dev
+          npm install @babel/plugin-proposal-private-property-in-object --save-dev
 
       - name: Run frontend tests
         working-directory: RubikLog/frontend
