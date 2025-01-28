@@ -20,13 +20,18 @@ function App() {
 
     // Fetch data from the Django API
     useEffect(() => {
-        fetch("http://127.0.0.1:8000/api/solves/")
-            .then((response) => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then((data) => setSolves(data))
-            .catch(error => setError(error.message));
+        const fetchSolves = async () => {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/solves/");
+                if (!response.ok) throw new Error('Failed to fetch solves');
+                const data = await response.json();
+                setSolves(data);
+            } catch (err) {
+                setError(err.message);
+                console.error('Fetch error:', err);
+            }
+        };
+        fetchSolves();
     }, []);
 
     // Add a new solve record
@@ -34,34 +39,44 @@ function App() {
         e.preventDefault();
         setError(null);
 
-        if (!solveTime) {
-            setError("Please enter a solve time");
+        // Convert to float and validate
+        const timeValue = parseFloat(solveTime);
+        if (!timeValue || isNaN(timeValue) || timeValue <= 0) {
+            setError("Please enter a valid solve time");
             return;
         }
 
-        const newSolve = {
-            solve_time: parseFloat(solveTime),
-            scramble: scramble || null
-        };
+        const formData = new FormData();
+        formData.append('solve_time', timeValue);
+        if (scramble.trim()) {
+            formData.append('scramble', scramble.trim());
+        }
 
         try {
             const response = await fetch("http://127.0.0.1:8000/api/solves/", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newSolve),
+                body: JSON.stringify({
+                    solve_time: timeValue,
+                    scramble: scramble.trim() || null
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to add solve');
+                console.error('Error response:', errorData);
+                throw new Error(Object.values(errorData).flat().join(', '));
             }
 
             const data = await response.json();
-            setSolves([...solves, data]);
+            setSolves(prev => [...prev, data]);
             setSolveTime("");
             setScramble("");
         } catch (err) {
             setError(err.message);
+            console.error('Submission error:', err);
         }
     };
 
