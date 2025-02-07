@@ -46,18 +46,12 @@ function App() {
             return;
         }
 
-        const formData = new FormData();
-        formData.append('solve_time', timeValue);
-        if (scramble.trim()) {
-            formData.append('scramble', scramble.trim());
-        }
-
         try {
             const response = await fetch("http://127.0.0.1:8000/api/solves/", {
                 method: "POST",
                 body: JSON.stringify({
-                    solve_time: timeValue,
-                    scramble: scramble.trim() || null
+                    time_taken: timeValue,  // Changed from solve_time to time_taken
+                    scramble: scramble.trim() || ""  // Changed null to empty string
                 }),
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,7 +60,6 @@ function App() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Error response:', errorData);
                 throw new Error(Object.values(errorData).flat().join(', '));
             }
 
