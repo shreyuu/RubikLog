@@ -4,4 +4,4 @@ from .models import Solve
 class SolveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Solve
-        fields = '__all__'
+        fields = ['id', 'time_taken', 'scramble', 'created_at']
