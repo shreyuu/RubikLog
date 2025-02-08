@@ -131,7 +131,7 @@ function App() {
                                 className="border-b py-2 flex justify-between items-center"
                             >
                                 <div>
-                                    <span className="font-medium">{formatTime(solve.solve_time)}s</span>
+                                    <span className="font-medium">{formatTime(solve.time_taken)}s</span>
                                     {solve.scramble && (
                                         <span className="text-gray-600 ml-2">- {solve.scramble}</span>
                                     )}
