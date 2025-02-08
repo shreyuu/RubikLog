@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 function App() {
     const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
     const [scramble, setScramble] = useState("");
     const [error, setError] = useState(null);
+    const [isRunning, setIsRunning] = useState(false);
+    const [time, setTime] = useState(0);
+    const [timerActive, setTimerActive] = useState(false);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -33,6 +36,41 @@ function App() {
         };
         fetchSolves();
     }, []);
+
+    // Stopwatch logic
+    useEffect(() => {
+        let intervalId;
+        if (isRunning) {
+            intervalId = setInterval(() => {
+                setTime(prevTime => prevTime + 0.01);
+            }, 10);
+        }
+        return () => clearInterval(intervalId);
+    }, [isRunning]);
+
+    // Handle spacebar press
+    const handleKeyPress = useCallback((event) => {
+        if (event.code === 'Space') {
+            event.preventDefault(); // Prevent page scrolling
+            if (!timerActive) {
+                // First press - start timer
+                setTime(0);
+                setIsRunning(true);
+                setTimerActive(true);
+            } else {
+                // Second press - stop timer
+                setIsRunning(false);
+                setTimerActive(false);
+                setSolveTime(time.toFixed(2));
+            }
+        }
+    }, [timerActive, time]);
+
+    // Add keyboard event listener
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyPress);
+        return () => document.removeEventListener('keydown', handleKeyPress);
+    }, [handleKeyPress]);
 
     // Add a new solve record
     const handleSubmit = async (e) => {
@@ -84,6 +122,18 @@ function App() {
                     </div>
                 )}
 
+                {/* Stopwatch Display */}
+                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <div className="text-center mb-4">
+                        <div className="text-4xl font-mono mb-2">
+                            {time.toFixed(2)}s
+                        </div>
+                        <div className="text-gray-500">
+                            Press SPACE to {!timerActive ? "start" : "stop"}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
                     <div className="mb-4">
@@ -97,6 +147,7 @@ function App() {
                                 onChange={(e) => setSolveTime(e.target.value)}
                                 className="w-full p-2 border rounded mt-1"
                                 required
+                                readOnly
                             />
                         </label>
                     </div>
