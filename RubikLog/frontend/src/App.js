@@ -127,6 +127,23 @@ function App() {
         }
     };
 
+    // Add this handler function after other handlers
+    const handleDelete = async (id) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/solves/${id}/`, {
+                method: 'DELETE',
+            });
+            
+            if (!response.ok) throw new Error('Failed to delete solve');
+            
+            // Remove the solve from state
+            setSolves(prev => prev.filter(solve => solve.id !== id));
+        } catch (err) {
+            setError(err.message);
+            console.error('Delete error:', err);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-4">
             <div className="max-w-2xl mx-auto">
@@ -214,9 +231,20 @@ function App() {
                                         <span className="text-gray-600 ml-2">- {solve.scramble}</span>
                                     )}
                                 </div>
-                                <span className="text-gray-500 text-sm">
-                                    {new Date(solve.created_at).toLocaleString()}
-                                </span>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-gray-500 text-sm">
+                                        {new Date(solve.created_at).toLocaleString()}
+                                    </span>
+                                    <button
+                                        onClick={() => handleDelete(solve.id)}
+                                        className="text-red-500 hover:text-red-700 p-1 rounded"
+                                        title="Delete solve"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
