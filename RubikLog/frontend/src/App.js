@@ -8,6 +8,7 @@ function App() {
     const [isRunning, setIsRunning] = useState(false);
     const [time, setTime] = useState(0);
     const [timerActive, setTimerActive] = useState(false);
+    const [isHolding, setIsHolding] = useState(false);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -48,29 +49,44 @@ function App() {
         return () => clearInterval(intervalId);
     }, [isRunning]);
 
-    // Handle spacebar press
-    const handleKeyPress = useCallback((event) => {
-        if (event.code === 'Space') {
-            event.preventDefault(); // Prevent page scrolling
-            if (!timerActive) {
-                // First press - start timer
-                setTime(0);
-                setIsRunning(true);
-                setTimerActive(true);
-            } else {
-                // Second press - stop timer
-                setIsRunning(false);
-                setTimerActive(false);
-                setSolveTime(time.toFixed(2));
-            }
+    // Handle keydown
+    const handleKeyDown = useCallback((event) => {
+        if (event.code === 'Space' && !event.repeat) {
+            event.preventDefault();
+            setIsHolding(true);
         }
-    }, [timerActive, time]);
+    }, []);
+
+    // Handle keyup
+    const handleKeyUp = useCallback((event) => {
+        if (event.code === 'Space') {
+            event.preventDefault();
+            if (isHolding) {
+                if (!timerActive) {
+                    // Start timer
+                    setTime(0);
+                    setIsRunning(true);
+                    setTimerActive(true);
+                } else {
+                    // Stop timer
+                    setIsRunning(false);
+                    setTimerActive(false);
+                    setSolveTime(time.toFixed(2));
+                }
+            }
+            setIsHolding(false);
+        }
+    }, [isHolding, timerActive, time]);
 
     // Add keyboard event listener
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyPress);
-        return () => document.removeEventListener('keydown', handleKeyPress);
-    }, [handleKeyPress]);
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [handleKeyDown, handleKeyUp]);
 
     // Add a new solve record
     const handleSubmit = async (e) => {
@@ -122,14 +138,25 @@ function App() {
                     </div>
                 )}
 
-                {/* Stopwatch Display */}
+                {/* Modified Stopwatch Display */}
                 <div className="bg-white p-6 rounded-lg shadow-md mb-6">
                     <div className="text-center mb-4">
-                        <div className="text-4xl font-mono mb-2">
+                        <div 
+                            className={`text-4xl font-mono mb-2 ${
+                                isHolding ? 'text-red-500' : 
+                                isRunning ? 'text-green-500' : 
+                                'text-gray-900'
+                            }`}
+                        >
                             {time.toFixed(2)}s
                         </div>
                         <div className="text-gray-500">
-                            Press SPACE to {!timerActive ? "start" : "stop"}
+                            {isHolding ? 
+                                "Release SPACE to start" : 
+                                !timerActive ? 
+                                    "Hold SPACE to prepare" : 
+                                    "Press SPACE to stop"
+                            }
                         </div>
                     </div>
                 </div>
