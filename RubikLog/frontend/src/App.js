@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 function App() {
     const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
     const [scramble, setScramble] = useState("");
     const [error, setError] = useState(null);
+    const [isRunning, setIsRunning] = useState(false);
+    const [time, setTime] = useState(0);
+    const [timerActive, setTimerActive] = useState(false);
+    const [isHolding, setIsHolding] = useState(false);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -33,6 +37,56 @@ function App() {
         };
         fetchSolves();
     }, []);
+
+    // Stopwatch logic
+    useEffect(() => {
+        let intervalId;
+        if (isRunning) {
+            intervalId = setInterval(() => {
+                setTime(prevTime => prevTime + 0.01);
+            }, 10);
+        }
+        return () => clearInterval(intervalId);
+    }, [isRunning]);
+
+    // Handle keydown
+    const handleKeyDown = useCallback((event) => {
+        if (event.code === 'Space' && !event.repeat) {
+            event.preventDefault();
+            setIsHolding(true);
+        }
+    }, []);
+
+    // Handle keyup
+    const handleKeyUp = useCallback((event) => {
+        if (event.code === 'Space') {
+            event.preventDefault();
+            if (isHolding) {
+                if (!timerActive) {
+                    // Start timer
+                    setTime(0);
+                    setIsRunning(true);
+                    setTimerActive(true);
+                } else {
+                    // Stop timer
+                    setIsRunning(false);
+                    setTimerActive(false);
+                    setSolveTime(time.toFixed(2));
+                }
+            }
+            setIsHolding(false);
+        }
+    }, [isHolding, timerActive, time]);
+
+    // Add keyboard event listener
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [handleKeyDown, handleKeyUp]);
 
     // Add a new solve record
     const handleSubmit = async (e) => {
@@ -73,6 +127,23 @@ function App() {
         }
     };
 
+    // Add this handler function after other handlers
+    const handleDelete = async (id) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/solves/${id}/`, {
+                method: 'DELETE',
+            });
+            
+            if (!response.ok) throw new Error('Failed to delete solve');
+            
+            // Remove the solve from state
+            setSolves(prev => prev.filter(solve => solve.id !== id));
+        } catch (err) {
+            setError(err.message);
+            console.error('Delete error:', err);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-4">
             <div className="max-w-2xl mx-auto">
@@ -83,6 +154,29 @@ function App() {
                         {error}
                     </div>
                 )}
+
+                {/* Modified Stopwatch Display */}
+                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <div className="text-center mb-4">
+                        <div 
+                            className={`text-4xl font-mono mb-2 ${
+                                isHolding ? 'text-red-500' : 
+                                isRunning ? 'text-green-500' : 
+                                'text-gray-900'
+                            }`}
+                        >
+                            {time.toFixed(2)}s
+                        </div>
+                        <div className="text-gray-500">
+                            {isHolding ? 
+                                "Release SPACE to start" : 
+                                !timerActive ? 
+                                    "Hold SPACE to prepare" : 
+                                    "Press SPACE to stop"
+                            }
+                        </div>
+                    </div>
+                </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -97,6 +191,7 @@ function App() {
                                 onChange={(e) => setSolveTime(e.target.value)}
                                 className="w-full p-2 border rounded mt-1"
                                 required
+                                readOnly
                             />
                         </label>
                     </div>
@@ -131,14 +226,25 @@ function App() {
                                 className="border-b py-2 flex justify-between items-center"
                             >
                                 <div>
-                                    <span className="font-medium">{formatTime(solve.solve_time)}s</span>
+                                    <span className="font-medium">{formatTime(solve.time_taken)}s</span>
                                     {solve.scramble && (
                                         <span className="text-gray-600 ml-2">- {solve.scramble}</span>
                                     )}
                                 </div>
-                                <span className="text-gray-500 text-sm">
-                                    {new Date(solve.created_at).toLocaleString()}
-                                </span>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-gray-500 text-sm">
+                                        {new Date(solve.created_at).toLocaleString()}
+                                    </span>
+                                    <button
+                                        onClick={() => handleDelete(solve.id)}
+                                        className="text-red-500 hover:text-red-700 p-1 rounded"
+                                        title="Delete solve"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
