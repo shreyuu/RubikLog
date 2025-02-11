@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders Rubik\'s Cube Solver heading', () => {
+test('renders RubikLog heading', () => {
   render(<App />);
-  const headingElement = screen.getByText(/Rubik's Cube Solver/i);
+  const headingElement = screen.getByText(/RubikLog/i);
   expect(headingElement).toBeInTheDocument();
 });
 
