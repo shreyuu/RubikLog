@@ -64,13 +64,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
+          cache: 'npm'
+          cache-dependency-path: './RubikLog/frontend/package-lock.json'
 
       - name: Install dependencies
         working-directory: RubikLog/frontend
         run: |
-          npm ci --legacy-peer-deps
-          npm install @testing-library/react@^13.4.0 --save-dev --legacy-peer-deps
-          npm install @babel/plugin-proposal-private-property-in-object --save-dev --legacy-peer-deps
+          rm -rf node_modules package-lock.json
+          npm install
+          npm install @testing-library/react@^13.4.0 --save-dev
+          npm install @babel/plugin-proposal-private-property-in-object --save-dev
 
       - name: Run frontend tests
         working-directory: RubikLog/frontend
