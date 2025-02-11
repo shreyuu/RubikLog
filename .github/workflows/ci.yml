@@ -37,12 +37,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
-        working-directory: RubikLog/frontend
+      - name: Install Python dependencies
         run: |
-          npm ci --legacy-peer-deps
-          npm install @testing-library/react --save-dev --legacy-peer-deps
-          npm install @babel/plugin-proposal-private-property-in-object --save-dev --legacy-peer-deps
+          python -m pip install --upgrade pip
+          pip install -r RubikLog/requirements.txt
 
       - name: Run migrations
         run: |
@@ -67,14 +65,14 @@ jobs:
       - name: Install dependencies
         working-directory: RubikLog/frontend
         run: |
-          npm ci
-          npm install @testing-library/react --save-dev
+          rm -rf node_modules package-lock.json
+          npm install
+          npm install @testing-library/react@^13.4.0 --save-dev
           npm install @babel/plugin-proposal-private-property-in-object --save-dev
 
       - name: Run frontend tests
         working-directory: RubikLog/frontend
         run: |
-          npm install --save-dev @babel/plugin-proposal-private-property-in-object
           CI=true npm test -- --watchAll=false
 
       - name: Build frontend
