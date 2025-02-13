@@ -134,11 +134,16 @@ function App() {
         try {
             const response = await fetch(`http://127.0.0.1:8000/api/solves/${id}/`, {
                 method: "DELETE",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             });
 
-            if (!response.ok) throw new Error("Failed to delete solve");
+            if (!response.ok) {
+                throw new Error(`Failed to delete solve (${response.status})`);
+            }
 
-            // Remove the solve from state
+            // Remove the solve from state only if delete was successful
             setSolves((prev) => prev.filter((solve) => solve.id !== id));
         } catch (err) {
             setError(err.message);
@@ -240,7 +245,7 @@ function App() {
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-6"> {/* Increased gap from 4 to 6 */}
                                     <span className="text-gray-500 text-sm">
                                         {new Date(solve.created_at).toLocaleString()}
                                     </span>
