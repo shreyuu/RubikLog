@@ -205,12 +205,12 @@ function App() {
                                 ? "text-red-400"
                                 : isRunning
                                     ? "text-emerald-400"
-                                    : "text-gray-100"
+                                    : "text-gray-800 dark:text-gray-100"
                                 }`}
                         >
                             {time.toFixed(2)}s
                         </div>
-                        <div className="text-gray-400 text-lg">
+                        <div className="text-gray-600 dark:text-gray-400 text-lg">
                             {isHolding
                                 ? "Release SPACE to start"
                                 : !timerActive
@@ -226,7 +226,7 @@ function App() {
                     className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700"
                 >
                     <div className="mb-4">
-                        <label className="block text-gray-300 mb-2">
+                        <label className="block text-gray-700 dark:text-gray-300 mb-2">
                             Solve Time (seconds)*:
                             <input
                                 type="number"
@@ -234,20 +234,20 @@ function App() {
                                 min="0"
                                 value={solveTime}
                                 onChange={(e) => setSolveTime(e.target.value)}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg mt-1 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                                 readOnly
                             />
                         </label>
                     </div>
                     <div className="mb-4">
-                        <label className="block text-gray-300 mb-2">
+                        <label className="block text-gray-700 dark:text-gray-300 mb-2">
                             Scramble (optional):
                             <input
                                 type="text"
                                 value={scramble}
                                 onChange={(e) => setScramble(e.target.value)}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg mt-1 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </label>
                     </div>
@@ -270,20 +270,20 @@ function App() {
                         solves.map((solve) => (
                             <div
                                 key={solve.id}
-                                className="border-b border-gray-700 py-4 flex justify-between items-center"
+                                className="border-b border-gray-200 dark:border-gray-700 py-4 flex justify-between items-center"
                             >
                                 <div>
-                                    <span className="font-medium text-gray-100">
+                                    <span className="font-medium text-gray-800 dark:text-gray-100">
                                         {formatTime(solve.time_taken)}s
                                     </span>
                                     {solve.scramble && (
-                                        <span className="text-gray-400 ml-2">
+                                        <span className="text-gray-600 dark:text-gray-400 ml-2">
                                             - {solve.scramble}
                                         </span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-6">
-                                    <span className="text-gray-400 text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400 text-sm">
                                         {new Date(solve.created_at).toLocaleString()}
                                     </span>
                                     <DeleteButton onClick={() => handleDelete(solve.id)} />
