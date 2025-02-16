@@ -25,9 +25,22 @@ const DeleteButton = ({ onClick }) => {
     );
 };
 
-// Add custom CSS classes for animation
+// Update the customAnimationClasses object
 const customAnimationClasses = {
-    button: "relative inline-flex items-center justify-center p-2 rounded-lg transition-all duration-300 before:absolute before:inset-0 before:rounded-lg before:border-2 before:border-transparent before:transition-all before:duration-300 hover:before:border-current",
+    button: `
+        relative inline-flex items-center justify-center p-2 rounded-lg
+        transition-all duration-300 ease-in-out
+        before:absolute before:inset-0
+        before:rounded-lg before:border-2 before:scale-100
+        before:transition-all before:duration-500 before:ease-out
+        before:border-transparent before:transform
+        hover:before:scale-105 hover:before:border-current
+        after:absolute after:inset-0
+        after:rounded-lg after:border-2 after:scale-105
+        after:transition-all after:duration-500 after:ease-out
+        after:border-transparent after:transform
+        hover:after:scale-100 hover:after:border-current
+    `,
     successMessage: "fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-lg animate-bounce",
 };
 
@@ -219,8 +232,8 @@ function App() {
                     <button
                         onClick={() => setDarkMode(!darkMode)}
                         className={`${customAnimationClasses.button} ${darkMode
-                                ? 'text-yellow-400 hover:before:border-yellow-400'
-                                : 'text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100'
+                            ? 'text-yellow-400 hover:before:border-yellow-400'
+                            : 'text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100'
                             }`}
                     >
                         {darkMode ? (
