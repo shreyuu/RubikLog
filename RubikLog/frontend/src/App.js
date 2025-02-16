@@ -1,5 +1,29 @@
 import React, { useState, useEffect, useCallback } from "react";
-import DeleteButton from "./components/DeleteButton";
+import StatCard from "./components/StatCard";
+
+// Add loading spinner component
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+    </div>
+);
+
+// Enhance the delete button with confirmation
+const DeleteButton = ({ onClick }) => {
+    const handleDelete = () => {
+        if (window.confirm('Are you sure you want to delete this solve?')) {
+            onClick();
+        }
+    };
+    return (
+        <button
+            onClick={handleDelete}
+            className="text-red-500 hover:text-red-700 transition-colors"
+        >
+            Delete
+        </button>
+    );
+};
 
 function App() {
     const [solves, setSolves] = useState([]);
@@ -8,9 +32,11 @@ function App() {
     const [error, setError] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [time, setTime] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
     const [timerActive, setTimerActive] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -22,7 +48,15 @@ function App() {
         return minutes > 0 ? `${minutes}:${seconds.padStart(5, "0")}` : seconds;
     };
 
-    // Fetch data from the Django API
+    const getBestTime = (solves) => {
+        if (!solves.length) return "-";
+        const bestTime = Math.min(...solves.map(solve => solve.time_taken));
+        return formatTime(bestTime);
+    };
+
+    const getAo5 = (solves) => "-";
+    const getAo12 = (solves) => "-";
+
     useEffect(() => {
         const fetchSolves = async () => {
             try {
@@ -33,6 +67,8 @@ function App() {
             } catch (err) {
                 setError(err.message);
                 console.error("Fetch error:", err);
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchSolves();
@@ -124,6 +160,8 @@ function App() {
             setSolves((prev) => [...prev, data]);
             setSolveTime("");
             setScramble("");
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
         } catch (err) {
             setError(err.message);
             console.error("Submission error:", err);
@@ -163,7 +201,8 @@ function App() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-4 transition-colors duration-200">
-            <div className="max-w-2xl mx-auto relative">
+            <div className="max-w-4xl mx-auto relative px-4 sm:px-6 lg:px-8">
+                {/* <div className="w-full mx-auto relative px-4"> */}  {/* full screen width*/}
                 <h1 className="mb-8 text-4xl font-extrabold text-center">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
                         RubikLog
@@ -173,7 +212,7 @@ function App() {
                 <div className="absolute top-4 right-4">
                     <button
                         onClick={() => setDarkMode(!darkMode)}
-                        className="p-2 rounded-lg bg-gray-800 dark:bg-gray-200 transition-colors duration-200"
+                        className="p-2 rounded-lg transition-colors duration-200"
                     >
                         {darkMode ? (
                             <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +237,13 @@ function App() {
                 )}
 
                 {/* Stopwatch Display */}
-                <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
+                <div className={`
+                    bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl 
+                    shadow-lg mb-6 border-2 transition-all duration-300
+                    ${isHolding ? 'border-red-400 scale-105' :
+                        isRunning ? 'border-emerald-400 scale-105' :
+                            'border-gray-200 dark:border-gray-700'}
+                `}>
                     <div className="text-center mb-4">
                         <div
                             className={`text-6xl font-mono mb-4 transition-colors ${isHolding
@@ -217,6 +262,22 @@ function App() {
                                     ? "Hold SPACE to prepare"
                                     : "Press SPACE to stop"}
                         </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            <p>⌨️ Use SPACE to control the timer</p>
+                            <p>🎯 Hold until red, release to start</p>
+                            <p>⏱️ Press again to stop</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Statistics</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard title="Best" value={getBestTime(solves)} />
+                        <StatCard title="Average of 5" value={getAo5(solves)} />
+                        <StatCard title="Average of 12" value={getAo12(solves)} />
+                        <StatCard title="Total Solves" value={solves.length} />
                     </div>
                 </div>
 
@@ -264,6 +325,23 @@ function App() {
                     <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
                         Solve Records
                     </h2>
+                    {isLoading && <LoadingSpinner />}
+                    <div className="flex justify-between items-center mb-4">
+                        <select className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                            <option>Latest First</option>
+                            <option>Oldest First</option>
+                            <option>Fastest First</option>
+                            <option>Slowest First</option>
+                        </select>
+                        <div className="flex gap-2">
+                            <button className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700">
+                                Previous
+                            </button>
+                            <button className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700">
+                                Next
+                            </button>
+                        </div>
+                    </div>
                     {solves.length === 0 ? (
                         <p className="text-gray-400">No solves recorded yet.</p>
                     ) : (
@@ -292,8 +370,14 @@ function App() {
                         ))
                     )}
                 </div>
+
+                {showSuccess && (
+                    <div className="fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-lg animate-bounce">
+                        Solve recorded successfully!
+                    </div>
+                )}
             </div>
-        </div>
+        </div >
     );
 }
 
