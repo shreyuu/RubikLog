@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StatCard from "./components/StatCard";
+import DeleteButton from './components/DeleteButton';
 
 // Add loading spinner component
 const LoadingSpinner = () => (
@@ -7,23 +8,6 @@ const LoadingSpinner = () => (
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
     </div>
 );
-
-// Enhance the delete button with confirmation
-const DeleteButton = ({ onClick }) => {
-    const handleDelete = () => {
-        if (window.confirm('Are you sure you want to delete this solve?')) {
-            onClick();
-        }
-    };
-    return (
-        <button
-            onClick={handleDelete}
-            className="text-red-500 hover:text-red-700 transition-colors"
-        >
-            Delete
-        </button>
-    );
-};
 
 // Update the customAnimationClasses object
 const customAnimationClasses = {
