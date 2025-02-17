@@ -1,25 +1,35 @@
 import React from 'react';
 
-const DeleteButton = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
+const DeleteButton = ({ onClick }) => {
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this solve?')) {
+      onClick();
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDelete}
+      className={`
+                relative inline-flex items-center justify-center px-4 py-2
+                text-red-500 rounded-lg group
+                transition-all duration-300 ease-in-out
+                before:absolute before:inset-0
+                before:rounded-lg before:border-2 before:border-transparent
+                before:transition-all before:duration-500 before:ease-out
+                hover:before:border-red-500
+                hover:before:scale-105
+                after:absolute after:inset-0
+                after:rounded-lg after:border-2 after:border-transparent
+                after:transition-all after:duration-500 after:ease-out
+                hover:after:border-red-500
+                hover:after:scale-95
+                hover:text-red-600
+            `}
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-      />
-    </svg>
-  </button>
-);
+      <span className="relative z-10">Delete</span>
+    </button>
+  );
+};
 
 export default DeleteButton;
