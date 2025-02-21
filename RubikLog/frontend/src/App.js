@@ -119,14 +119,14 @@ function App() {
                         setIsRunning(false);
                         setTimerActive(false);
                         setSolveTime(time.toFixed(2));
-                        // Generate new scramble for next solve
-                        handleNewScramble();
+                        // Remove the automatic scramble generation
+                        // handleNewScramble();
                     }
                 }
                 setIsHolding(false);
             }
         },
-        [isHolding, timerActive, time, handleNewScramble]
+        [isHolding, timerActive, time] // Remove handleNewScramble from dependencies
     );
 
     // Add keyboard event listener
@@ -211,11 +211,6 @@ function App() {
         }
     }, [darkMode]);
 
-    // Add this useEffect to generate initial scramble
-    useEffect(() => {
-        handleNewScramble();
-    }, [handleNewScramble]);
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-4 transition-colors duration-200">
             <div className="max-w-4xl mx-auto relative px-4 sm:px-6 lg:px-8">
@@ -230,8 +225,8 @@ function App() {
                     <button
                         onClick={() => setDarkMode(!darkMode)}
                         className={`${customAnimationClasses.button} ${darkMode
-                            ? "text-yellow-400 hover:before:border-yellow-400"
-                            : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                                ? "text-yellow-400 hover:before:border-yellow-400"
+                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                             }`}
                     >
                         {darkMode ? (
@@ -286,10 +281,10 @@ function App() {
                     <div className="text-center mb-4">
                         <div
                             className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                ? "text-red-400"
-                                : isRunning
-                                    ? "text-emerald-400"
-                                    : "text-gray-800 dark:text-gray-100"
+                                    ? "text-red-400"
+                                    : isRunning
+                                        ? "text-emerald-400"
+                                        : "text-gray-800 dark:text-gray-100"
                                 }`}
                         >
                             {time.toFixed(2)}s
@@ -343,12 +338,21 @@ function App() {
                     <div className="mb-4">
                         <label className="block text-gray-700 dark:text-gray-300 mb-2">
                             Scramble (optional):
-                            <input
-                                type="text"
-                                value={scramble}
-                                onChange={(e) => setScramble(e.target.value)}
-                                className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={scramble}
+                                    onChange={(e) => setScramble(e.target.value)}
+                                    className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleNewScramble}
+                                    className="mt-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                                >
+                                    Generate
+                                </button>
+                            </div>
                         </label>
                     </div>
                     <button
