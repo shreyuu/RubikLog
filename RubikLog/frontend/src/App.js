@@ -33,7 +33,9 @@ const customAnimationClasses = {
 function App() {
     const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
-    const [scramble, setScramble] = useState("");
+    const [scramble, setScramble] = useState(() => {
+        return localStorage.getItem('lastScramble') || '';
+    });
     const [error, setError] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [time, setTime] = useState(0);
@@ -92,7 +94,9 @@ function App() {
 
     // Add this function before other handlers
     const handleNewScramble = useCallback(() => {
-        setScramble(generateScramble());
+        const newScramble = generateScramble();
+        setScramble(newScramble);
+        localStorage.setItem('lastScramble', newScramble);
     }, []);
 
     // Handle keydown
@@ -211,6 +215,11 @@ function App() {
         }
     }, [darkMode]);
 
+    // Add an effect to save scramble when manually entered
+    useEffect(() => {
+        localStorage.setItem('lastScramble', scramble);
+    }, [scramble]);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-4 transition-colors duration-200">
             <div className="max-w-4xl mx-auto relative px-4 sm:px-6 lg:px-8">
@@ -225,8 +234,8 @@ function App() {
                     <button
                         onClick={() => setDarkMode(!darkMode)}
                         className={`${customAnimationClasses.button} ${darkMode
-                                ? "text-yellow-400 hover:before:border-yellow-400"
-                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                            ? "text-yellow-400 hover:before:border-yellow-400"
+                            : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                             }`}
                     >
                         {darkMode ? (
@@ -281,10 +290,10 @@ function App() {
                     <div className="text-center mb-4">
                         <div
                             className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                    ? "text-red-400"
-                                    : isRunning
-                                        ? "text-emerald-400"
-                                        : "text-gray-800 dark:text-gray-100"
+                                ? "text-red-400"
+                                : isRunning
+                                    ? "text-emerald-400"
+                                    : "text-gray-800 dark:text-gray-100"
                                 }`}
                         >
                             {time.toFixed(2)}s
