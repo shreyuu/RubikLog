@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StatCard from "./components/StatCard";
-import DeleteButton from './components/DeleteButton';
+import DeleteButton from "./components/DeleteButton";
+import { generateScramble } from "./utils/scrambleGenerator";
 
 // Add loading spinner component
 const LoadingSpinner = () => (
@@ -25,13 +26,16 @@ const customAnimationClasses = {
         after:border-transparent after:transform
         hover:after:scale-100 hover:after:border-current
     `,
-    successMessage: "fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-lg animate-bounce",
+    successMessage:
+        "fixed bottom-4 right-4 bg-green-500 text-white p-3 rounded-lg animate-bounce",
 };
 
 function App() {
     const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
-    const [scramble, setScramble] = useState("");
+    const [scramble, setScramble] = useState(() => {
+        return localStorage.getItem('lastScramble') || '';
+    });
     const [error, setError] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [time, setTime] = useState(0);
@@ -53,7 +57,7 @@ function App() {
 
     const getBestTime = (solves) => {
         if (!solves.length) return "-";
-        const bestTime = Math.min(...solves.map(solve => solve.time_taken));
+        const bestTime = Math.min(...solves.map((solve) => solve.time_taken));
         return formatTime(bestTime);
     };
 
@@ -88,6 +92,13 @@ function App() {
         return () => clearInterval(intervalId);
     }, [isRunning]);
 
+    // Add this function before other handlers
+    const handleNewScramble = useCallback(() => {
+        const newScramble = generateScramble();
+        setScramble(newScramble);
+        localStorage.setItem('lastScramble', newScramble);
+    }, []);
+
     // Handle keydown
     const handleKeyDown = useCallback((event) => {
         if (event.code === "Space" && !event.repeat) {
@@ -112,12 +123,14 @@ function App() {
                         setIsRunning(false);
                         setTimerActive(false);
                         setSolveTime(time.toFixed(2));
+                        // Remove the automatic scramble generation
+                        // handleNewScramble();
                     }
                 }
                 setIsHolding(false);
             }
         },
-        [isHolding, timerActive, time]
+        [isHolding, timerActive, time] // Remove handleNewScramble from dependencies
     );
 
     // Add keyboard event listener
@@ -177,7 +190,7 @@ function App() {
             const response = await fetch(`http://127.0.0.1:8000/api/solves/${id}/`, {
                 method: "DELETE",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
             });
 
@@ -196,60 +209,84 @@ function App() {
     // Add theme toggle effect
     useEffect(() => {
         if (darkMode) {
-            document.documentElement.classList.add('dark');
+            document.documentElement.classList.add("dark");
         } else {
-            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.remove("dark");
         }
     }, [darkMode]);
+
+    // Add an effect to save scramble when manually entered
+    useEffect(() => {
+        localStorage.setItem('lastScramble', scramble);
+    }, [scramble]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-4 transition-colors duration-200">
             <div className="max-w-4xl mx-auto relative px-4 sm:px-6 lg:px-8">
-                {/* <div className="w-full mx-auto relative px-4"> */}  {/* full screen width*/}
+                {/* <div className="w-full mx-auto relative px-4"> */}{" "}
+                {/* full screen width*/}
                 <h1 className="mb-8 text-4xl font-extrabold text-center">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
                         RubikLog
                     </span>
                 </h1>
-
                 <div className="absolute top-4 right-4">
                     <button
                         onClick={() => setDarkMode(!darkMode)}
                         className={`${customAnimationClasses.button} ${darkMode
-                            ? 'text-yellow-400 hover:before:border-yellow-400'
-                            : 'text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100'
+                            ? "text-yellow-400 hover:before:border-yellow-400"
+                            : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                             }`}
                     >
                         {darkMode ? (
-                            <svg className="w-6 h-6 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            <svg
+                                className="w-6 h-6 relative"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
                                     d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
                                 />
                             </svg>
                         ) : (
-                            <svg className="w-6 h-6 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            <svg
+                                className="w-6 h-6 relative"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
                                     d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
                                 />
                             </svg>
                         )}
                     </button>
                 </div>
-
                 {error && (
                     <div className="bg-red-100 dark:bg-red-900/50 border border-red-500 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
                         {error}
                     </div>
                 )}
-
                 {/* Stopwatch Display */}
-                <div className={`
+                <div
+                    className={`
                     bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl 
                     shadow-lg mb-6 border-2 transition-all duration-300
-                    ${isHolding ? 'border-red-400 scale-105' :
-                        isRunning ? 'border-emerald-400 scale-105' :
-                            'border-gray-200 dark:border-gray-700'}
-                `}>
+                    ${isHolding
+                            ? "border-red-400 scale-105"
+                            : isRunning
+                                ? "border-emerald-400 scale-105"
+                                : "border-gray-200 dark:border-gray-700"
+                        }
+                `}
+                >
                     <div className="text-center mb-4">
                         <div
                             className={`text-6xl font-mono mb-4 transition-colors ${isHolding
@@ -275,10 +312,11 @@ function App() {
                         </div>
                     </div>
                 </div>
-
                 {/* Statistics */}
                 <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700">
-                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Statistics</h2>
+                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                        Statistics
+                    </h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard title="Best" value={getBestTime(solves)} />
                         <StatCard title="Average of 5" value={getAo5(solves)} />
@@ -286,7 +324,6 @@ function App() {
                         <StatCard title="Total Solves" value={solves.length} />
                     </div>
                 </div>
-
                 {/* Form */}
                 <form
                     onSubmit={handleSubmit}
@@ -310,12 +347,21 @@ function App() {
                     <div className="mb-4">
                         <label className="block text-gray-700 dark:text-gray-300 mb-2">
                             Scramble (optional):
-                            <input
-                                type="text"
-                                value={scramble}
-                                onChange={(e) => setScramble(e.target.value)}
-                                className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={scramble}
+                                    onChange={(e) => setScramble(e.target.value)}
+                                    className="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleNewScramble}
+                                    className="mt-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                                >
+                                    Generate
+                                </button>
+                            </div>
                         </label>
                     </div>
                     <button
@@ -325,7 +371,6 @@ function App() {
                         Add Solve
                     </button>
                 </form>
-
                 {/* Solve Records */}
                 <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
@@ -376,14 +421,13 @@ function App() {
                         ))
                     )}
                 </div>
-
                 {showSuccess && (
                     <div className={customAnimationClasses.successMessage}>
                         Solve recorded successfully!
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }
 

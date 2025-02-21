@@ -1,8 +1,8 @@
-import React from 'react';
+import React from "react";
 
 const DeleteButton = ({ onClick }) => {
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this solve?')) {
+    if (window.confirm("Are you sure you want to delete this solve?")) {
       onClick();
     }
   };
@@ -19,11 +19,6 @@ const DeleteButton = ({ onClick }) => {
                 before:transition-all before:duration-500 before:ease-out
                 hover:before:border-red-500
                 hover:before:scale-105
-                after:absolute after:inset-0
-                after:rounded-lg after:border-2 after:border-transparent
-                after:transition-all after:duration-500 after:ease-out
-                hover:after:border-red-500
-                hover:after:scale-95
                 hover:text-red-600
             `}
     >
