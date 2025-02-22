@@ -7,5 +7,4 @@ class Solve(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        # return f'solved on {self.date_solved} in {self.time_taken} seconds'
-        return f"{self.time_taken}s - {self.date_solved.strftime('%d %b %Y %H:%M:%S')}"
+        return f"{self.time_taken}s - {self.created_at.strftime('%d %b %Y %H:%M:%S')}"
