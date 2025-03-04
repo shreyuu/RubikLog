@@ -1,3 +1,4 @@
 rubiklogenv
 RubikLog/.env
 .DS_Store
+.vscode/settings.json
