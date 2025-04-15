@@ -237,4 +237,4 @@ Contributions are welcome! Please create a pull request or open an issue for any
 
 ## Contact
 
-For any inquiries or issues, please reach out to [Shreyuu](https://github.com/shreyuu).
+For any inquiries or issues, please reach out to [Shreyuu](mailto:shreyashmeshram0031@gmail.com). 
