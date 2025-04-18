@@ -34,7 +34,7 @@ function App() {
     const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
     const [scramble, setScramble] = useState(() => {
-        return localStorage.getItem('lastScramble') || '';
+        return localStorage.getItem("lastScramble") || "";
     });
     const [error, setError] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
@@ -67,12 +67,14 @@ function App() {
     useEffect(() => {
         const fetchSolves = async () => {
             try {
+                setIsLoading(true);
                 const response = await fetch("http://127.0.0.1:8000/api/solves/");
-                if (!response.ok) throw new Error("Failed to fetch solves");
+                if (!response.ok)
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 setSolves(data);
             } catch (err) {
-                setError(err.message);
+                setError(`Failed to fetch solves: ${err.message}`);
                 console.error("Fetch error:", err);
             } finally {
                 setIsLoading(false);
@@ -96,7 +98,7 @@ function App() {
     const handleNewScramble = useCallback(() => {
         const newScramble = generateScramble();
         setScramble(newScramble);
-        localStorage.setItem('lastScramble', newScramble);
+        localStorage.setItem("lastScramble", newScramble);
     }, []);
 
     // Handle keydown
@@ -217,7 +219,7 @@ function App() {
 
     // Add an effect to save scramble when manually entered
     useEffect(() => {
-        localStorage.setItem('lastScramble', scramble);
+        localStorage.setItem("lastScramble", scramble);
     }, [scramble]);
 
     return (
@@ -234,8 +236,8 @@ function App() {
                     <button
                         onClick={() => setDarkMode(!darkMode)}
                         className={`${customAnimationClasses.button} ${darkMode
-                            ? "text-yellow-400 hover:before:border-yellow-400"
-                            : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                                ? "text-yellow-400 hover:before:border-yellow-400"
+                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                             }`}
                     >
                         {darkMode ? (
@@ -290,10 +292,10 @@ function App() {
                     <div className="text-center mb-4">
                         <div
                             className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                ? "text-red-400"
-                                : isRunning
-                                    ? "text-emerald-400"
-                                    : "text-gray-800 dark:text-gray-100"
+                                    ? "text-red-400"
+                                    : isRunning
+                                        ? "text-emerald-400"
+                                        : "text-gray-800 dark:text-gray-100"
                                 }`}
                         >
                             {time.toFixed(2)}s
