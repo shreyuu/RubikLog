@@ -16,3 +16,14 @@ class SolveTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Solve.objects.count(), 1)
         self.assertEqual(Solve.objects.get().time_taken, 10.5)
+
+    def test_delete_solve(self):
+        solve = Solve.objects.create(**self.solve_data)
+        response = self.client.delete(f'/api/solves/{solve.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Solve.objects.count(), 0)
+
+    def test_invalid_time(self):
+        invalid_data = {'time_taken': -1.0, 'scramble': "R U R' U'"}
+        response = self.client.post('/api/solves/', invalid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
