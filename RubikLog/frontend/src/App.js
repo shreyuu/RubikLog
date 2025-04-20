@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import StatCard from "./components/StatCard";
 import DeleteButton from "./components/DeleteButton";
 import { generateScramble } from "./utils/scrambleGenerator";
+import CubeScanner from "./components/CubeScanner";
+import { generateScrambleFromColors } from './utils/cubeNotation';
 
 // Add loading spinner component
 const LoadingSpinner = () => (
@@ -66,6 +68,8 @@ function App() {
     const [isHolding, setIsHolding] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+    const [cubeState, setCubeState] = useState(null);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -85,8 +89,9 @@ function App() {
 
     const getAo5 = (solves) => {
         if (solves.length < 5) return "-";
-        const recent5 = solves.slice(-5)
-            .map(solve => solve.time_taken)
+        const recent5 = solves
+            .slice(-5)
+            .map((solve) => solve.time_taken)
             .sort((a, b) => a - b);
         // Remove best and worst times
         const sum = recent5.slice(1, -1).reduce((a, b) => a + b, 0);
@@ -95,8 +100,9 @@ function App() {
 
     const getAo12 = (solves) => {
         if (solves.length < 12) return "-";
-        const recent12 = solves.slice(-12)
-            .map(solve => solve.time_taken)
+        const recent12 = solves
+            .slice(-12)
+            .map((solve) => solve.time_taken)
             .sort((a, b) => a - b);
         // Remove best and worst times
         const sum = recent12.slice(1, -1).reduce((a, b) => a + b, 0);
@@ -261,6 +267,38 @@ function App() {
         localStorage.setItem("lastScramble", scramble);
     }, [scramble]);
 
+    // Add handler for scan completion
+    const handleScanComplete = (colors) => {
+        setCubeState(colors);
+        setShowScanner(false);
+        const detectedScramble = generateScrambleFromColors(colors);
+        setScramble(detectedScramble);
+
+        // Display detected state
+        console.log('Detected cube state:', colors);
+    };
+
+    // Add cube state visualization
+    const renderCubeState = () => {
+        if (!cubeState) return null;
+
+        return (
+            <div className="grid grid-cols-3 gap-2 mt-4">
+                {cubeState.map((face, i) => (
+                    <div key={i} className="grid grid-cols-3 gap-1">
+                        {face.map((color, j) => (
+                            <div
+                                key={j}
+                                className="w-8 h-8 rounded"
+                                style={{ backgroundColor: color }}
+                            />
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <ErrorBoundary>
             <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-4 transition-colors duration-200">
@@ -406,6 +444,19 @@ function App() {
                                 </div>
                             </label>
                         </div>
+                        <div className="mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setShowScanner(true)}
+                                className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition-all duration-300 font-medium mb-2"
+                            >
+                                Scan Cube with Camera
+                            </button>
+                            {showScanner && (
+                                <CubeScanner onScanComplete={handleScanComplete} />
+                            )}
+                        </div>
+                        {cubeState && renderCubeState()}
                         <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 text-white p-3 rounded-lg hover:from-blue-600 hover:to-emerald-600 transition-all duration-300 font-medium"
