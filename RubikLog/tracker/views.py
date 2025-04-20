@@ -9,7 +9,8 @@ from .serializers import SolveSerializer
 # Create your views here.
 class SolveList(APIView):
     def get(self, request):
-        solves = Solve.objects.all()
+        sort_by = request.query_params.get('sort_by', '-created_at')
+        solves = Solve.objects.all().order_by(sort_by)
         serializer = SolveSerializer(solves, many=True)
         return Response(serializer.data)
 
