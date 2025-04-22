@@ -1,24 +1,29 @@
+const validateCorners = (colors) => {
+    // Add logic to validate corners if necessary
+    return true; // Placeholder for corner validation logic
+};
+
 export const validateCubeState = (colors) => {
-    // Check if all faces have 9 stickers
-    if (!colors || colors.length !== 6 || colors.some(face => !face || face.length !== 9)) {
-        return false;
-    }
-
-    // Count center colors (should have exactly one of each)
-    const centerColors = colors.map(face => face[4]);
-    const uniqueCenters = new Set(centerColors);
-    if (uniqueCenters.size !== 6) {
-        return false;
-    }
-
-    // Count total stickers of each color (should have exactly 9 of each)
-    const allStickers = colors.flat();
-    const colorCounts = allStickers.reduce((acc, color) => {
+    // Count each color
+    const colorCount = colors.flat().reduce((acc, color) => {
         acc[color] = (acc[color] || 0) + 1;
         return acc;
     }, {});
 
-    return Object.values(colorCounts).every(count => count === 9);
+    // Each color should appear exactly 9 times
+    const validCount = Object.values(colorCount).every(count => count === 9);
+    if (!validCount) return false;
+
+    // Validate center pieces (must be different)
+    const centers = colors.map(face => face[4]);
+    const uniqueCenters = new Set(centers);
+    if (uniqueCenters.size !== 6) return false;
+
+    // Validate corner pieces
+    const corners = validateCorners(colors);
+    if (!corners) return false;
+
+    return true;
 };
 
 export const generateScrambleFromColors = (colors) => {
