@@ -18,6 +18,7 @@ const CubeScanner = ({ onScanComplete }) => {
     const canvasRef = useRef(null);
     const [isScanning, setIsScanning] = useState(false);
     const [currentFace, setCurrentFace] = useState(0);
+    const [detectedColors, setDetectedColors] = useState(Array(9).fill('unknown'));
     const faces = ['top', 'right', 'front', 'back', 'left', 'bottom'];
     const colors = [];
 
@@ -54,11 +55,38 @@ const CubeScanner = ({ onScanComplete }) => {
                     cellHeight / 2
                 );
                 imageData = adjustBrightness(imageData); // Adjust brightness
+                imageData = normalizeColors(imageData); // Normalize colors
                 const color = getAverageColor(imageData.data);
                 faceColors.push(determineRubikColor(color));
             }
         }
+        setDetectedColors(faceColors);
         return faceColors;
+    };
+
+    const normalizeColors = (imageData) => {
+        const data = imageData.data;
+        let minBrightness = 255;
+        let maxBrightness = 0;
+
+        // Find min and max brightness
+        for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            minBrightness = Math.min(minBrightness, brightness);
+            maxBrightness = Math.max(maxBrightness, brightness);
+        }
+
+        const range = maxBrightness - minBrightness;
+        if (range === 0) return imageData;
+
+        // Normalize brightness
+        for (let i = 0; i < data.length; i += 4) {
+            for (let j = 0; j < 3; j++) {
+                data[i + j] = ((data[i + j] - minBrightness) / range) * 255;
+            }
+        }
+
+        return imageData;
     };
 
     const getAverageColor = (data) => {
@@ -76,33 +104,53 @@ const CubeScanner = ({ onScanComplete }) => {
         };
     };
 
+    const rgbToHsv = (r, g, b) => {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const d = max - min;
+        let h, s = max === 0 ? 0 : d / max;
+        const v = max;
+
+        if (max === min) {
+            h = 0;
+        } else {
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+                default: h = 0; break; // Add default case
+            }
+            h /= 6;
+        }
+        return { h: h * 360, s: s * 100, v: v * 100 };
+    };
+
     const determineRubikColor = (rgb) => {
-        // Update color references for better accuracy
-        const colors = {
-            white: { r: 255, g: 255, b: 255, threshold: 30 },
-            yellow: { r: 255, g: 255, b: 0, threshold: 50 },
-            red: { r: 255, g: 0, b: 0, threshold: 50 },
-            orange: { r: 255, g: 140, b: 0, threshold: 60 }, // Adjusted orange values
-            blue: { r: 0, g: 0, b: 255, threshold: 50 },
-            green: { r: 0, g: 255, b: 0, threshold: 50 }
+        // Updated color references with HSV conversion for better accuracy
+        const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+
+        // Color definitions with HSV ranges
+        const colorRanges = {
+            white: { h: [0, 360], s: [0, 20], v: [80, 100] },
+            yellow: { h: [50, 70], s: [50, 100], v: [80, 100] },
+            red: { h: [350, 10], s: [60, 100], v: [60, 100] },
+            orange: { h: [20, 35], s: [60, 100], v: [70, 100] },
+            blue: { h: [210, 240], s: [60, 100], v: [50, 100] },
+            green: { h: [100, 140], s: [40, 100], v: [40, 100] }
         };
 
-        let minDistance = Infinity;
-        let closestColor = '';
+        for (const [color, range] of Object.entries(colorRanges)) {
+            const hInRange = (hsv.h >= range.h[0] && hsv.h <= range.h[1]) ||
+                (range.h[0] > range.h[1] && (hsv.h >= range.h[0] || hsv.h <= range.h[1]));
+            const sInRange = hsv.s >= range.s[0] && hsv.s <= range.s[1];
+            const vInRange = hsv.v >= range.v[0] && hsv.v <= range.v[1];
 
-        for (const [color, value] of Object.entries(colors)) {
-            const distance = Math.sqrt(
-                Math.pow(rgb.r - value.r, 2) +
-                Math.pow(rgb.g - value.g, 2) +
-                Math.pow(rgb.b - value.b, 2)
-            );
-            if (distance < minDistance && distance < value.threshold) {
-                minDistance = distance;
-                closestColor = color;
+            if (hInRange && sInRange && vInRange) {
+                return color;
             }
         }
-
-        return closestColor || 'unknown';
+        return 'unknown';
     };
 
     // Add brightness adjustment
@@ -160,6 +208,16 @@ const CubeScanner = ({ onScanComplete }) => {
         }
     };
 
+    const colorToRGB = {
+        white: '255, 255, 255',
+        yellow: '255, 255, 0',
+        red: '255, 0, 0',
+        orange: '255, 165, 0',
+        blue: '0, 0, 255',
+        green: '0, 255, 0',
+        unknown: '0, 0, 0'
+    };
+
     return (
         <div className="bg-white/70 dark:bg-gray-800/70 p-6 rounded-lg shadow-lg">
             <ScanningGuide />
@@ -180,8 +238,19 @@ const CubeScanner = ({ onScanComplete }) => {
                     height="480"
                 />
                 <div className="grid grid-cols-3 absolute top-0 left-0 w-full h-full pointer-events-none">
-                    {[...Array(9)].map((_, i) => (
-                        <div key={i} className="border border-white/50" />
+                    {detectedColors.map((color, i) => (
+                        <div
+                            key={i}
+                            className={`border-2 ${color === 'unknown'
+                                ? 'border-white/50'
+                                : `border-${color}-500`
+                                }`}
+                            style={{
+                                backgroundColor: color !== 'unknown'
+                                    ? `rgba(${colorToRGB[color]}, 0.3)`
+                                    : 'transparent'
+                            }}
+                        />
                     ))}
                 </div>
             </div>
