@@ -1,9 +1,47 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, createContext, useContext, useReducer } from "react";
 import StatCard from "./components/StatCard";
 import DeleteButton from "./components/DeleteButton";
 import { generateScramble } from "./utils/scrambleGenerator";
 import CubeScanner from "./components/CubeScanner";
 import { generateScrambleFromColors } from './utils/cubeNotation';
+
+const SolveContext = createContext();
+
+const initialState = {
+    solves: [],
+    isLoading: false,
+    error: null,
+    pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 0
+    }
+};
+
+function solveReducer(state, action) {
+    switch (action.type) {
+        case 'SET_SOLVES':
+            return { ...state, solves: action.payload, error: null };
+        case 'SET_LOADING':
+            return { ...state, isLoading: action.payload };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
+        case 'SET_PAGINATION':
+            return { ...state, pagination: { ...state.pagination, ...action.payload } };
+        default:
+            return state;
+    }
+}
+
+export function SolveProvider({ children }) {
+    const [state, dispatch] = useReducer(solveReducer, initialState);
+
+    return (
+        <SolveContext.Provider value={{ state, dispatch }}>
+            {children}
+        </SolveContext.Provider>
+    );
+}
 
 // Add loading spinner component
 const LoadingSpinner = () => (
@@ -55,21 +93,20 @@ class ErrorBoundary extends React.Component {
 }
 
 function App() {
-    const [solves, setSolves] = useState([]);
     const [solveTime, setSolveTime] = useState("");
     const [scramble, setScramble] = useState(() => {
         return localStorage.getItem("lastScramble") || "";
     });
-    const [error, setError] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [time, setTime] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
     const [timerActive, setTimerActive] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [cubeState, setCubeState] = useState(null);
+
+    const { state, dispatch } = useContext(SolveContext);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -112,21 +149,21 @@ function App() {
     useEffect(() => {
         const fetchSolves = async () => {
             try {
-                setIsLoading(true);
+                dispatch({ type: 'SET_LOADING', payload: true });
                 const response = await fetch("http://127.0.0.1:8000/api/solves/");
                 if (!response.ok)
                     throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                setSolves(data);
+                dispatch({ type: 'SET_SOLVES', payload: data });
             } catch (err) {
-                setError(`Failed to fetch solves: ${err.message}`);
+                dispatch({ type: 'SET_ERROR', payload: `Failed to fetch solves: ${err.message}` });
                 console.error("Fetch error:", err);
             } finally {
-                setIsLoading(false);
+                dispatch({ type: 'SET_LOADING', payload: false });
             }
         };
         fetchSolves();
-    }, []);
+    }, [dispatch]);
 
     // Stopwatch logic
     useEffect(() => {
@@ -193,12 +230,12 @@ function App() {
     // Add a new solve record
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
+        dispatch({ type: 'SET_ERROR', payload: null });
 
         // Convert to float and validate
         const timeValue = parseFloat(solveTime);
-        if (!timeValue || isNaN(timeValue) || timeValue <= 0) {
-            setError("Please enter a valid solve time");
+        if (!timeValue || isNaN(timeValue || timeValue <= 0)) {
+            dispatch({ type: 'SET_ERROR', payload: "Please enter a valid solve time" });
             return;
         }
 
@@ -220,13 +257,13 @@ function App() {
             }
 
             const data = await response.json();
-            setSolves((prev) => [...prev, data]);
+            dispatch({ type: 'SET_SOLVES', payload: [...state.solves, data] });
             setSolveTime("");
             setScramble("");
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 2000);
         } catch (err) {
-            setError(err.message);
+            dispatch({ type: 'SET_ERROR', payload: err.message });
             console.error("Submission error:", err);
         }
     };
@@ -246,9 +283,9 @@ function App() {
             }
 
             // Remove the solve from state only if delete was successful
-            setSolves((prev) => prev.filter((solve) => solve.id !== id));
+            dispatch({ type: 'SET_SOLVES', payload: state.solves.filter((solve) => solve.id !== id) });
         } catch (err) {
-            setError(err.message);
+            dispatch({ type: 'SET_ERROR', payload: err.message });
             console.error("Delete error:", err);
         }
     };
@@ -343,15 +380,15 @@ function App() {
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                         strokeWidth={2}
-                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 9.003 0 008.354-5.646z"
                                     />
                                 </svg>
                             )}
                         </button>
                     </div>
-                    {error && (
+                    {state.error && (
                         <div className="bg-red-100 dark:bg-red-900/50 border border-red-500 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
-                            {error}
+                            {state.error}
                         </div>
                     )}
                     {/* Stopwatch Display */}
@@ -398,10 +435,10 @@ function App() {
                             Statistics
                         </h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <StatCard title="Best" value={getBestTime(solves)} />
-                            <StatCard title="Average of 5" value={getAo5(solves)} />
-                            <StatCard title="Average of 12" value={getAo12(solves)} />
-                            <StatCard title="Total Solves" value={solves.length} />
+                            <StatCard title="Best" value={getBestTime(state.solves)} />
+                            <StatCard title="Average of 5" value={getAo5(state.solves)} />
+                            <StatCard title="Average of 12" value={getAo12(state.solves)} />
+                            <StatCard title="Total Solves" value={state.solves.length} />
                         </div>
                     </div>
                     {/* Form */}
@@ -469,7 +506,7 @@ function App() {
                         <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
                             Solve Records
                         </h2>
-                        {isLoading && <LoadingSpinner />}
+                        {state.isLoading && <LoadingSpinner />}
                         <div className="flex justify-between items-center mb-4">
                             <select className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
                                 <option>Latest First</option>
@@ -486,10 +523,10 @@ function App() {
                                 </button>
                             </div>
                         </div>
-                        {solves.length === 0 ? (
+                        {state.solves.length === 0 ? (
                             <p className="text-gray-400">No solves recorded yet.</p>
                         ) : (
-                            solves.map((solve) => (
+                            state.solves.map((solve) => (
                                 <div
                                     key={solve.id}
                                     className="border-b border-gray-200 dark:border-gray-700 py-4 flex justify-between items-center"
