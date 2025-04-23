@@ -2,17 +2,33 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.filters import OrderingFilter
+from rest_framework.pagination import PageNumberPagination
 from .models import Solve
 from .serializers import SolveSerializer
 
 
+class SolvePagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 # Create your views here.
 class SolveList(APIView):
+    pagination_class = SolvePagination
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['time_taken', 'created_at']
+    
     def get(self, request):
+        # Add sorting and pagination
+        queryset = Solve.objects.all()
         sort_by = request.query_params.get('sort_by', '-created_at')
-        solves = Solve.objects.all().order_by(sort_by)
-        serializer = SolveSerializer(solves, many=True)
-        return Response(serializer.data)
+        queryset = queryset.order_by(sort_by)
+        
+        page = self.pagination_class().paginate_queryset(queryset, request)
+        serializer = SolveSerializer(page, many=True)
+        return self.pagination_class().get_paginated_response(serializer.data)
 
     def post(self, request):
         print("Received data:", request.data)  # Debug log
