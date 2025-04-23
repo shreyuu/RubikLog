@@ -234,7 +234,7 @@ function App() {
 
         // Convert to float and validate
         const timeValue = parseFloat(solveTime);
-        if (!timeValue || isNaN(timeValue || timeValue <= 0)) {
+        if (isNaN(timeValue) || timeValue <= 0) {
             dispatch({ type: 'SET_ERROR', payload: "Please enter a valid solve time" });
             return;
         }
