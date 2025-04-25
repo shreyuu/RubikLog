@@ -5,9 +5,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 class SolveSerializer(serializers.ModelSerializer):
+    detected_colors = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        write_only=True
+    )
+    
     class Meta:
         model = Solve
-        fields = ['id', 'time_taken', 'scramble', 'created_at']
+        fields = ['id', 'time_taken', 'scramble', 'created_at', 'detected_colors']
         
     def validate(self, data):
         try:

@@ -171,6 +171,31 @@ const CubeScanner = ({ onScanComplete }) => {
         // Implement validation logic as needed
     };
 
+    const handleCapture = async (imageData) => {
+        try {
+            const response = await fetch('http://localhost:8000/api/solves/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cube_image: imageData
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to process image');
+            }
+
+            const data = await response.json();
+            if (data.solve && data.solve.scramble) {
+                onScanComplete(data.solve.scramble);
+            }
+        } catch (error) {
+            console.error('Error processing image:', error);
+        }
+    };
+
     const captureFace = () => {
         const faceColors = detectColors();
 
