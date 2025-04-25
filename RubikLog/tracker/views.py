@@ -46,8 +46,13 @@ class SolveList(APIView):
         if 'cube_image' in request.data:
             try:
                 # Process base64 image data
-                image_data = base64.b64decode(request.data['cube_image'].split(',')[1])
-                detected_colors = self.detector.detect_colors(image_data)
+                cube_image = request.data['cube_image']
+                if ',' not in cube_image:
+                    return Response(
+                        {'error': 'Invalid cube_image format. Expected a base64 string with a comma.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                image_data = base64.b64decode(cube_image.split(',')[1])
                 data['detected_colors'] = detected_colors
                 
                 # Generate scramble from detected colors
