@@ -34,7 +34,7 @@ class CubeSolvePredictor:
             return None
             
         features = self.preprocess_data(recent_solves)
-        features = self.scaler.fit_transform(features)
+        features = self.scaler.transform(features)
         features = features.reshape(1, -1, 5)
         
         prediction = self.model.predict(features)
