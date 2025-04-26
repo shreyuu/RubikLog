@@ -53,6 +53,7 @@ class SolveList(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 image_data = base64.b64decode(cube_image.split(',')[1])
+                detected_colors = self.detector.detect_colors(image_data)
                 data['detected_colors'] = detected_colors
                 
                 # Generate scramble from detected colors
