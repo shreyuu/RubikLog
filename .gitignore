@@ -2,3 +2,5 @@ rubiklogenv
 RubikLog/.env
 .DS_Store
 .vscode/settings.json
+RubikLog/rubiklogenv-py311
+**/__pycache__/
