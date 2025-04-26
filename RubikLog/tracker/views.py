@@ -107,3 +107,28 @@ class SolveList(APIView):
                     moves.append('B')
                     
         return ' '.join(moves) if moves else None
+
+class SolveDetail(APIView):
+    """
+    Retrieve, update or delete a solve instance.
+    """
+    def get_object(self, pk):
+        return get_object_or_404(Solve, pk=pk)
+
+    def get(self, request, pk):
+        solve = self.get_object(pk)
+        serializer = SolveSerializer(solve)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        solve = self.get_object(pk)
+        serializer = SolveSerializer(solve, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        solve = self.get_object(pk)
+        solve.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
