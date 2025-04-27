@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useCallback, createContext, useContext, useReducer } from "react";
+import React, {
+    useState,
+    useEffect,
+    useCallback,
+    createContext,
+    useContext,
+    useReducer,
+} from "react";
 import StatCard from "./components/StatCard";
 import DeleteButton from "./components/DeleteButton";
 import { generateScramble } from "./utils/scrambleGenerator";
-import CubeScanner from "./components/CubeScanner";
-import { generateScrambleFromColors } from './utils/cubeNotation';
 
 const SolveContext = createContext();
 
@@ -14,20 +19,23 @@ const initialState = {
     pagination: {
         page: 1,
         pageSize: 10,
-        total: 0
-    }
+        total: 0,
+    },
 };
 
 function solveReducer(state, action) {
     switch (action.type) {
-        case 'SET_SOLVES':
+        case "SET_SOLVES":
             return { ...state, solves: action.payload, error: null };
-        case 'SET_LOADING':
+        case "SET_LOADING":
             return { ...state, isLoading: action.payload };
-        case 'SET_ERROR':
+        case "SET_ERROR":
             return { ...state, error: action.payload };
-        case 'SET_PAGINATION':
-            return { ...state, pagination: { ...state.pagination, ...action.payload } };
+        case "SET_PAGINATION":
+            return {
+                ...state,
+                pagination: { ...state.pagination, ...action.payload },
+            };
         default:
             return state;
     }
@@ -104,7 +112,6 @@ function App() {
     const [darkMode, setDarkMode] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
-    const [cubeState, setCubeState] = useState(null);
 
     const { state, dispatch } = useContext(SolveContext);
 
@@ -149,17 +156,20 @@ function App() {
     useEffect(() => {
         const fetchSolves = async () => {
             try {
-                dispatch({ type: 'SET_LOADING', payload: true });
+                dispatch({ type: "SET_LOADING", payload: true });
                 const response = await fetch("http://127.0.0.1:8000/api/solves/");
                 if (!response.ok)
                     throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                dispatch({ type: 'SET_SOLVES', payload: data });
+                dispatch({ type: "SET_SOLVES", payload: data });
             } catch (err) {
-                dispatch({ type: 'SET_ERROR', payload: `Failed to fetch solves: ${err.message}` });
+                dispatch({
+                    type: "SET_ERROR",
+                    payload: `Failed to fetch solves: ${err.message}`,
+                });
                 console.error("Fetch error:", err);
             } finally {
-                dispatch({ type: 'SET_LOADING', payload: false });
+                dispatch({ type: "SET_LOADING", payload: false });
             }
         };
         fetchSolves();
@@ -207,14 +217,12 @@ function App() {
                         setIsRunning(false);
                         setTimerActive(false);
                         setSolveTime(time.toFixed(2));
-                        // Remove the automatic scramble generation
-                        // handleNewScramble();
                     }
                 }
                 setIsHolding(false);
             }
         },
-        [isHolding, timerActive, time] // Remove handleNewScramble from dependencies
+        [isHolding, timerActive, time]
     );
 
     // Add keyboard event listener
@@ -228,24 +236,11 @@ function App() {
     }, [handleKeyDown, handleKeyUp]);
 
     // Add a new solve record
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        dispatch({ type: 'SET_ERROR', payload: null });
-
-        // Convert to float and validate
-        const timeValue = parseFloat(solveTime);
-        if (isNaN(timeValue) || timeValue <= 0) {
-            dispatch({ type: 'SET_ERROR', payload: "Please enter a valid solve time" });
-            return;
-        }
-
+    const handleSubmit = async (data) => {
         try {
             const response = await fetch("http://127.0.0.1:8000/api/solves/", {
                 method: "POST",
-                body: JSON.stringify({
-                    time_taken: timeValue, // Changed from solve_time to time_taken
-                    scramble: scramble.trim() || "", // Changed null to empty string
-                }),
+                body: JSON.stringify(data),
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -256,14 +251,17 @@ function App() {
                 throw new Error(Object.values(errorData).flat().join(", "));
             }
 
-            const data = await response.json();
-            dispatch({ type: 'SET_SOLVES', payload: [...state.solves, data] });
+            const responseData = await response.json();
+            dispatch({
+                type: "SET_SOLVES",
+                payload: [...state.solves, responseData.solve],
+            });
             setSolveTime("");
             setScramble("");
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 2000);
         } catch (err) {
-            dispatch({ type: 'SET_ERROR', payload: err.message });
+            dispatch({ type: "SET_ERROR", payload: err.message });
             console.error("Submission error:", err);
         }
     };
@@ -283,9 +281,12 @@ function App() {
             }
 
             // Remove the solve from state only if delete was successful
-            dispatch({ type: 'SET_SOLVES', payload: state.solves.filter((solve) => solve.id !== id) });
+            dispatch({
+                type: "SET_SOLVES",
+                payload: state.solves.filter((solve) => solve.id !== id),
+            });
         } catch (err) {
-            dispatch({ type: 'SET_ERROR', payload: err.message });
+            dispatch({ type: "SET_ERROR", payload: err.message });
             console.error("Delete error:", err);
         }
     };
@@ -305,35 +306,11 @@ function App() {
     }, [scramble]);
 
     // Add handler for scan completion
-    const handleScanComplete = (colors) => {
-        setCubeState(colors);
-        setShowScanner(false);
-        const detectedScramble = generateScrambleFromColors(colors);
-        setScramble(detectedScramble);
-
-        // Display detected state
-        console.log('Detected cube state:', colors);
-    };
-
-    // Add cube state visualization
-    const renderCubeState = () => {
-        if (!cubeState) return null;
-
-        return (
-            <div className="grid grid-cols-3 gap-2 mt-4">
-                {cubeState.map((face, i) => (
-                    <div key={i} className="grid grid-cols-3 gap-1">
-                        {face.map((color, j) => (
-                            <div
-                                key={j}
-                                className="w-8 h-8 rounded"
-                                style={{ backgroundColor: color }}
-                            />
-                        ))}
-                    </div>
-                ))}
-            </div>
-        );
+    const handleScanComplete = (imageData) => {
+        handleSubmit({
+            cube_image: imageData,
+            time_taken: time.toFixed(2),
+        });
     };
 
     return (
@@ -351,8 +328,8 @@ function App() {
                         <button
                             onClick={() => setDarkMode(!darkMode)}
                             className={`${customAnimationClasses.button} ${darkMode
-                                ? "text-yellow-400 hover:before:border-yellow-400"
-                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                                    ? "text-yellow-400 hover:before:border-yellow-400"
+                                    : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                                 }`}
                         >
                             {darkMode ? (
@@ -407,10 +384,10 @@ function App() {
                         <div className="text-center mb-4">
                             <div
                                 className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                    ? "text-red-400"
-                                    : isRunning
-                                        ? "text-emerald-400"
-                                        : "text-gray-800 dark:text-gray-100"
+                                        ? "text-red-400"
+                                        : isRunning
+                                            ? "text-emerald-400"
+                                            : "text-gray-800 dark:text-gray-100"
                                     }`}
                             >
                                 {time.toFixed(2)}s
@@ -443,7 +420,13 @@ function App() {
                     </div>
                     {/* Form */}
                     <form
-                        onSubmit={handleSubmit}
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSubmit({
+                                time_taken: parseFloat(solveTime),
+                                scramble: scramble.trim() || "",
+                            });
+                        }}
                         className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-6 border border-gray-200 dark:border-gray-700"
                     >
                         <div className="mb-4">
@@ -489,11 +472,7 @@ function App() {
                             >
                                 Scan Cube with Camera
                             </button>
-                            {showScanner && (
-                                <CubeScanner onScanComplete={handleScanComplete} />
-                            )}
                         </div>
-                        {cubeState && renderCubeState()}
                         <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 text-white p-3 rounded-lg hover:from-blue-600 hover:to-emerald-600 transition-all duration-300 font-medium"
