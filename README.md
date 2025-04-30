@@ -1,69 +1,42 @@
 # RubikLog
 
-RubikLog is a Django-based web application for tracking Rubik’s Cube solving times. It features a ReactJS frontend styled with TailwindCSS and uses PostgreSQL as its database.
+RubikLog is a Django-based web application for tracking Rubik's Cube solving times with computer vision capabilities for scanning cube states. It features a ReactJS frontend styled with TailwindCSS and uses PostgreSQL as its database.
 
 ## Features
 
-- **Frontend**: Built with ReactJS and styled using TailwindCSS.
-- **Backend**: Powered by Django, featuring RESTful APIs.
-- **Database**: PostgreSQL for secure and efficient data storage.
-- **Tracking**: Log solving times and scrambles for practice and analysis.
-- **Continuous Integration**: GitHub Actions workflow for CI/CD pipelines.
+- **Timer**: Space bar-controlled timer with hold-to-ready functionality
+- **Scramble Generator**: Built-in scramble generator and manual entry
+- **Computer Vision**: Cube state detection using webcam
+- **Statistics**: Track best times, Ao5, Ao12, and solve history
+- **Dark Mode**: Toggle between light and dark themes
+- **Frontend**: Built with ReactJS and styled using TailwindCSS
+- **Backend**: Django REST framework with PostgreSQL database
+- **Machine Learning**: TensorFlow-based solve time prediction
+- **CI/CD**: GitHub Actions workflow for automated testing
 
 ---
 
-## Project Directory Structure
+## Project Structure
+
+Key components:
 
 ```
-.
-├── .gitignore
-├── LICENSE
-├── README.md
-├── RubikLog
-│   ├── .env
-│   ├── RubikLog
-│   │   ├── __init__.py
-│   │   ├── asgi.py
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── frontend
-│   │   ├── .gitignore
-│   │   ├── README.md
-│   │   ├── package-lock.json
-│   │   ├── package.json
-│   │   ├── public
-│   │   │   ├── favicon.ico
-│   │   │   ├── index.html
-│   │   │   ├── logo192.png
-│   │   │   ├── logo512.png
-│   │   │   ├── manifest.json
-│   │   │   └── robots.txt
-│   │   ├── src
-│   │   │   ├── App.css
-│   │   │   ├── App.js
-│   │   │   ├── App.test.js
-│   │   │   ├── index.css
-│   │   │   ├── index.js
-│   │   │   ├── logo.svg
-│   │   │   ├── reportWebVitals.js
-│   │   │   └── setupTests.js
-│   │   └── tailwind.config.js
-│   ├── manage.py
-│   └── tracker
-│       ├── __init__.py
-│       ├── admin.py
-│       ├── apps.py
-│       ├── migrations
-│       │   ├── 0001_initial.py
-│       │   ├── 0002_solve_scramble.py
-│       │   └── __init__.py
-│       ├── models.py
-│       ├── serializers.py
-│       ├── tests.py
-│       ├── urls.py
-│       └── views.py
-└── requirements.txt
+RubikLog/
+├── frontend/                # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   │   ├── CubeScanner.jsx
+│   │   │   ├── DeleteButton.js
+│   │   │   └── StatCard.jsx
+│   │   └── utils/         # Utility functions
+│   │       ├── cubeNotation.js
+│   │       └── scrambleGenerator.js
+├── tracker/                # Django backend app
+│   ├── models.py          # Database models
+│   ├── views.py           # API views
+│   ├── serializers.py     # REST serializers
+│   └── ml_service.py      # Machine learning services
+└── RubikLog/              # Django project settings
 ```
 
 ---
@@ -72,169 +45,124 @@ RubikLog is a Django-based web application for tracking Rubik’s Cube solving t
 
 ### System Requirements
 
-- **Python 3.10+**
-- **Node.js 18+**
-- **PostgreSQL 14+**
-- **npm** (Node Package Manager)
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL 14+
+- Webcam (for cube scanning)
 
-### Python Dependencies
+### Key Dependencies
 
-Install Python dependencies from the `requirements.txt` file:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Node.js Dependencies
-
-Install Node.js dependencies for the frontend:
-
-```bash
-cd RubikLog/frontend
-npm install
-```
+- Django & Django REST framework
+- ReactJS 18
+- TailwindCSS
+- TensorFlow
+- OpenCV
+- scikit-learn
 
 ---
 
-## Environment Variables
+## Quick Start
 
-Create a `.env` file in the `RubikLog` directory with the following content:
-
-```
-SECRET_KEY=<your_django_secret_key>
-DEBUG=True
-DATABASE_URL=postgres://<db_user>:<db_password>@localhost:5432/rubiklogdb
-```
-
----
-
-## Setup and Installation
-
-### 1. Clone the Repository
+1. Clone and setup environment:
 
 ```bash
-git clone https://github.com/shreyuu/RubikLog.git
+git clone <repository-url>
 cd RubikLog
-```
-
-### 2. Create and Activate Virtual Environment
-
-```bash
 python -m venv rubiklogenv
-source rubiklogenv/bin/activate
+source rubiklogenv/bin/activate  # or `rubiklogenv\Scripts\activate` on Windows
 ```
 
-### 3. Install Backend Dependencies
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 4. Set Up the Database
-
-Ensure PostgreSQL is running, then create the database:
-
-```bash
-psql -U postgres -c "CREATE DATABASE rubiklogdb;"
-```
-
-### 5. Run Migrations
-
-```bash
-python manage.py migrate
-```
-
-### 6. Start the Backend Server
-
-```bash
-python manage.py runserver
-```
-
-### 7. Install Frontend Dependencies
-
-```bash
 cd frontend
 npm install
 ```
 
-### 8. Start the Frontend Development Server
+3. Set up database:
 
 ```bash
+psql -U postgres -c "CREATE DATABASE rubiklogdb;"
+python manage.py migrate
+```
+
+4. Start development servers:
+
+```bash
+# Terminal 1 - Backend
+python manage.py runserver
+
+# Terminal 2 - Frontend
+cd frontend
 npm start
 ```
 
 ---
 
+## Features in Detail
+
+### Timer
+
+- Space bar control
+- Visual feedback for hold state
+- Automatic scramble generation
+- Manual time entry option
+
+### Cube Scanner
+
+- Webcam-based cube state detection
+- Color normalization and recognition
+- Automatic scramble generation from detected state
+- Real-time visual feedback
+
+### Statistics
+
+- Best solve time
+- Average of 5 (Ao5)
+- Average of 12 (Ao12)
+- Total solve count
+- Detailed solve history
+
+### Machine Learning
+
+- Solve time prediction
+- Color detection algorithms
+- Pattern recognition for scramble detection
+
+---
+
 ## Testing
 
-### Backend Tests
-
-Run the Django tests using:
+Backend tests:
 
 ```bash
 python manage.py test
 ```
 
-### Frontend Tests
-
-Run React tests using:
+Frontend tests:
 
 ```bash
-npm test -- --watchAll=false
+cd frontend
+npm test
 ```
-
----
-
-## CI/CD Workflow
-
-A GitHub Actions workflow is set up for the following:
-
-1. Running backend tests using Django.
-2. Running frontend tests and builds using ReactJS.
-
-### Workflow File
-
-The workflow file is located at `.github/workflows/ci.yml`.
-
----
-
-## Deployment
-
-To deploy the app:
-
-1. Ensure PostgreSQL is configured and accessible.
-2. Set the `DEBUG` environment variable to `False`.
-3. Collect static files for production:
-
-    ```bash
-    python manage.py collectstatic
-    ```
-
-4. Use a production-grade web server like Gunicorn or deploy using platforms such as Heroku, AWS, or Docker.
-
----
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please create a pull request or open an issue for any enhancements or bug fixes.
+Contributions are welcome! Please read the [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ---
 
-## Acknowledgments
+## License
 
-- Django for the backend framework.
-- ReactJS for the frontend framework.
-- TailwindCSS for styling.
-- PostgreSQL for the database.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Contact
 
-For any inquiries or issues, please reach out to [Shreyuu](mailto:shreyashmeshram0031@gmail.com). 
+Shreyash Meshram - [shreyashmeshram0031@gmail.com](mailto:shreyashmeshram0031@gmail.com)
+
+Project Link: [https://github.com/shreyuu/RubikLog](https://github.com/shreyuu/RubikLog)
