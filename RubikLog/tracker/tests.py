@@ -27,3 +27,11 @@ class SolveTests(TestCase):
         invalid_data = {'time_taken': -1.0, 'scramble': "R U R' U'"}
         response = self.client.post('/api/solves/', invalid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invalid_scramble(self):
+        invalid_data = {
+            'time_taken': 10.5,
+            'scramble': 'invalid notation'
+        }
+        response = self.client.post('/api/solves/', invalid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
