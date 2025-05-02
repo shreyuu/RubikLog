@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import StatCard from "./components/StatCard";
 import DeleteButton from "./components/DeleteButton";
 import { generateScramble } from "./utils/scrambleGenerator";
 import CubeScanner from "./components/CubeScanner";
-import { generateScrambleFromColors } from './utils/cubeNotation';
+import { generateScrambleFromColors } from "./utils/cubeNotation";
 
 // Add loading spinner component
 const LoadingSpinner = () => (
@@ -108,6 +108,9 @@ function App() {
         const sum = recent12.slice(1, -1).reduce((a, b) => a + b, 0);
         return (sum / 10).toFixed(2);
     };
+
+    const memoizedGetAo5 = useMemo(() => getAo5(solves), [solves]);
+    const memoizedGetAo12 = useMemo(() => getAo12(solves), [solves]);
 
     useEffect(() => {
         const fetchSolves = async () => {
@@ -275,7 +278,7 @@ function App() {
         setScramble(detectedScramble);
 
         // Display detected state
-        console.log('Detected cube state:', colors);
+        console.log("Detected cube state:", colors);
     };
 
     // Add cube state visualization
@@ -314,8 +317,8 @@ function App() {
                         <button
                             onClick={() => setDarkMode(!darkMode)}
                             className={`${customAnimationClasses.button} ${darkMode
-                                ? "text-yellow-400 hover:before:border-yellow-400"
-                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                                    ? "text-yellow-400 hover:before:border-yellow-400"
+                                    : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                                 }`}
                         >
                             {darkMode ? (
@@ -370,10 +373,10 @@ function App() {
                         <div className="text-center mb-4">
                             <div
                                 className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                    ? "text-red-400"
-                                    : isRunning
-                                        ? "text-emerald-400"
-                                        : "text-gray-800 dark:text-gray-100"
+                                        ? "text-red-400"
+                                        : isRunning
+                                            ? "text-emerald-400"
+                                            : "text-gray-800 dark:text-gray-100"
                                     }`}
                             >
                                 {time.toFixed(2)}s
@@ -399,8 +402,8 @@ function App() {
                         </h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <StatCard title="Best" value={getBestTime(solves)} />
-                            <StatCard title="Average of 5" value={getAo5(solves)} />
-                            <StatCard title="Average of 12" value={getAo12(solves)} />
+                            <StatCard title="Average of 5" value={memoizedGetAo5} />
+                            <StatCard title="Average of 12" value={memoizedGetAo12} />
                             <StatCard title="Total Solves" value={solves.length} />
                         </div>
                     </div>
