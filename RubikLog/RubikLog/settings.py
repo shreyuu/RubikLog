@@ -47,6 +47,11 @@ INSTALLED_APPS = [
     'rest_framework'
 ]
 
+INSTALLED_APPS += [
+    'drf_yasg',
+    'django_filters',
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
