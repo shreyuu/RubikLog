@@ -5,6 +5,29 @@ import { generateScramble } from "./utils/scrambleGenerator";
 import CubeScanner from "./components/CubeScanner";
 import { generateScrambleFromColors } from "./utils/cubeNotation";
 
+const API_URL = 'http://127.0.0.1:8000/api';
+const TIMEOUT_DURATION = 5000; // 5 seconds
+
+const fetchWithTimeout = async (url, options = {}) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        return response;
+    } catch (error) {
+        clearTimeout(timeout);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out');
+        }
+        throw error;
+    }
+};
+
 // Add loading spinner component
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-4">
@@ -66,10 +89,16 @@ function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [timerActive, setTimerActive] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
-    const [darkMode, setDarkMode] = useState(true);
+    const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem('darkMode');
+        return saved ? JSON.parse(saved) : true;
+    });
     const [showSuccess, setShowSuccess] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [cubeState, setCubeState] = useState(null);
+    const [sortOrder, setSortOrder] = useState('latest');
+    const ITEMS_PER_PAGE = 10;
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -88,7 +117,7 @@ function App() {
     };
 
     const getAo5 = (solves) => {
-        if (solves.length < 5) return "-";
+        if (!Array.isArray(solves) || solves.length < 5) return "-";
         const recent5 = solves
             .slice(-5)
             .map((solve) => solve.time_taken)
@@ -99,7 +128,7 @@ function App() {
     };
 
     const getAo12 = (solves) => {
-        if (solves.length < 12) return "-";
+        if (!Array.isArray(solves) || solves.length < 12) return "-";
         const recent12 = solves
             .slice(-12)
             .map((solve) => solve.time_taken)
@@ -112,24 +141,47 @@ function App() {
     const memoizedGetAo5 = useMemo(() => getAo5(solves), [solves]);
     const memoizedGetAo12 = useMemo(() => getAo12(solves), [solves]);
 
+    const sortedSolves = useMemo(() => {
+        if (!Array.isArray(solves)) return [];
+
+        const sorted = [...solves];
+        switch (sortOrder) {
+            case 'oldest':
+                return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            case 'fastest':
+                return sorted.sort((a, b) => a.time_taken - b.time_taken);
+            case 'slowest':
+                return sorted.sort((a, b) => b.time_taken - a.time_taken);
+            default: // latest
+                return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+    }, [solves, sortOrder]);
+
+    const paginatedSolves = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return sortedSolves.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [sortedSolves, currentPage]);
+
+    const totalPages = Math.ceil(sortedSolves.length / ITEMS_PER_PAGE);
+
     useEffect(() => {
         const fetchSolves = async () => {
             try {
-                setIsLoading(true);
-                const response = await fetch("http://127.0.0.1:8000/api/solves/");
-                if (!response.ok)
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                const response = await fetchWithTimeout(`${API_URL}/solves/`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch solves');
+                }
                 const data = await response.json();
-                setSolves(data);
+                setSolves(data.results); // Set the results array from the response
+                setIsLoading(false);
             } catch (err) {
-                setError(`Failed to fetch solves: ${err.message}`);
-                console.error("Fetch error:", err);
-            } finally {
+                setError('Error loading solves: ' + err.message);
                 setIsLoading(false);
             }
         };
+
         fetchSolves();
-    }, []);
+    }, []); // Empty dependency array means this runs once on mount
 
     // Stopwatch logic
     useEffect(() => {
@@ -206,11 +258,11 @@ function App() {
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/solves/", {
+            const response = await fetchWithTimeout(`${API_URL}/solves/`, {
                 method: "POST",
                 body: JSON.stringify({
-                    time_taken: timeValue, // Changed from solve_time to time_taken
-                    scramble: scramble.trim() || "", // Changed null to empty string
+                    time_taken: timeValue,
+                    scramble: scramble.trim() || "",
                 }),
                 headers: {
                     "Content-Type": "application/json",
@@ -222,8 +274,13 @@ function App() {
                 throw new Error(Object.values(errorData).flat().join(", "));
             }
 
-            const data = await response.json();
-            setSolves((prev) => [...prev, data]);
+            const newSolve = await response.json();
+            setSolves((prevSolves) => {
+                // Ensure prevSolves is an array
+                const currentSolves = Array.isArray(prevSolves) ? prevSolves : [];
+                return [...currentSolves, newSolve];
+            });
+
             setSolveTime("");
             setScramble("");
             setShowSuccess(true);
@@ -237,7 +294,7 @@ function App() {
     // Add this handler function after other handlers
     const handleDelete = async (id) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/solves/${id}/`, {
+            const response = await fetchWithTimeout(`${API_URL}/solves/${id}/`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -269,6 +326,11 @@ function App() {
     useEffect(() => {
         localStorage.setItem("lastScramble", scramble);
     }, [scramble]);
+
+    // Add this effect:
+    useEffect(() => {
+        localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    }, [darkMode]);
 
     // Add handler for scan completion
     const handleScanComplete = (colors) => {
@@ -317,8 +379,8 @@ function App() {
                         <button
                             onClick={() => setDarkMode(!darkMode)}
                             className={`${customAnimationClasses.button} ${darkMode
-                                    ? "text-yellow-400 hover:before:border-yellow-400"
-                                    : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
+                                ? "text-yellow-400 hover:before:border-yellow-400"
+                                : "text-gray-900 dark:text-gray-100 hover:before:border-gray-900 dark:hover:before:border-gray-100"
                                 }`}
                         >
                             {darkMode ? (
@@ -346,7 +408,7 @@ function App() {
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                         strokeWidth={2}
-                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 9.003 9.003 0 008.354-5.646z"
                                     />
                                 </svg>
                             )}
@@ -373,10 +435,10 @@ function App() {
                         <div className="text-center mb-4">
                             <div
                                 className={`text-6xl font-mono mb-4 transition-colors ${isHolding
-                                        ? "text-red-400"
-                                        : isRunning
-                                            ? "text-emerald-400"
-                                            : "text-gray-800 dark:text-gray-100"
+                                    ? "text-red-400"
+                                    : isRunning
+                                        ? "text-emerald-400"
+                                        : "text-gray-800 dark:text-gray-100"
                                     }`}
                             >
                                 {time.toFixed(2)}s
@@ -474,48 +536,70 @@ function App() {
                         </h2>
                         {isLoading && <LoadingSpinner />}
                         <div className="flex justify-between items-center mb-4">
-                            <select className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
-                                <option>Latest First</option>
-                                <option>Oldest First</option>
-                                <option>Fastest First</option>
-                                <option>Slowest First</option>
+                            <select
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                                className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2"
+                            >
+                                <option value="latest">Latest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="fastest">Fastest First</option>
+                                <option value="slowest">Slowest First</option>
                             </select>
                             <div className="flex gap-2">
-                                <button className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className={`px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 
+                                        ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                                >
                                     Previous
                                 </button>
-                                <button className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700">
+                                <span className="px-3 py-1">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 
+                                        ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                                >
                                     Next
                                 </button>
                             </div>
                         </div>
-                        {solves.length === 0 ? (
-                            <p className="text-gray-400">No solves recorded yet.</p>
-                        ) : (
-                            solves.map((solve) => (
-                                <div
-                                    key={solve.id}
-                                    className="border-b border-gray-200 dark:border-gray-700 py-4 flex justify-between items-center"
-                                >
-                                    <div>
-                                        <span className="font-medium text-gray-800 dark:text-gray-100">
-                                            {formatTime(solve.time_taken)}s
-                                        </span>
-                                        {solve.scramble && (
-                                            <span className="text-gray-600 dark:text-gray-400 ml-2">
-                                                - {solve.scramble}
-                                            </span>
-                                        )}
+                        <div className="solves-list">
+                            {!Array.isArray(paginatedSolves) ? (
+                                <p>Loading solves...</p>
+                            ) : paginatedSolves.length === 0 ? (
+                                <p>No solves recorded yet</p>
+                            ) : (
+                                paginatedSolves.map((solve) => (
+                                    <div key={solve.id} className="solve-item">
+                                        <div
+                                            className="border-b border-gray-200 dark:border-gray-700 py-4 flex justify-between items-center"
+                                        >
+                                            <div>
+                                                <span className="font-medium text-gray-800 dark:text-gray-100">
+                                                    {formatTime(solve.time_taken)}s
+                                                </span>
+                                                {solve.scramble && (
+                                                    <span className="text-gray-600 dark:text-gray-400 ml-2">
+                                                        - {solve.scramble}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <span className="text-gray-600 dark:text-gray-400 text-sm">
+                                                    {new Date(solve.created_at).toLocaleString()}
+                                                </span>
+                                                <DeleteButton onClick={() => handleDelete(solve.id)} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-gray-600 dark:text-gray-400 text-sm">
-                                            {new Date(solve.created_at).toLocaleString()}
-                                        </span>
-                                        <DeleteButton onClick={() => handleDelete(solve.id)} />
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
                     {showSuccess && (
                         <div className={customAnimationClasses.successMessage}>
