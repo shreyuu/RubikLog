@@ -171,40 +171,58 @@ const CubeScanner = ({ onScanComplete }) => {
         // Implement validation logic as needed
     };
 
-    const captureFace = () => {
-        const faceColors = detectColors();
+    const captureFace = async () => {
+        if (!canvasRef.current || !videoRef.current) return;
 
-        // Validate detected colors
-        if (faceColors.includes('unknown')) {
-            alert('Could not detect all colors clearly. Please adjust lighting or cube position.');
-            return;
-        }
+        try {
+            // Capture current frame to canvas
+            const ctx = canvasRef.current.getContext('2d');
+            ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-        const centerColor = faceColors[4]; // Center sticker
-        const surroundingColors = faceColors.filter((_, i) => i !== 4);
+            // Convert canvas to base64
+            const imageData = canvasRef.current.toDataURL('image/jpeg');
 
-        // Check if surrounding colors make sense
-        if (surroundingColors.includes(centerColor)) {
-            alert('Invalid color pattern detected. Center color should not appear on surrounding stickers.');
-            return;
-        }
+            // Send to backend
+            const response = await fetch('http://localhost:8000/api/scan-cube/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imageData })
+            });
 
-        colors[currentFace] = faceColors;
-        if (currentFace === 5) {
-            try {
-                validateCubeState(colors);
-                setIsScanning(false);
-                if (videoRef.current?.srcObject) {
-                    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-                }
-                onScanComplete(colors);
-            } catch (error) {
-                alert('Invalid cube state detected. Please try scanning again.');
-                setCurrentFace(0);
-                colors.length = 0;
+            if (!response.ok) {
+                throw new Error('Failed to process image');
             }
-        } else {
-            setCurrentFace(prev => prev + 1);
+
+            const { colors: faceColors } = await response.json();
+
+            // Validate detected colors
+            if (faceColors.includes('unknown')) {
+                alert('Could not detect all colors clearly. Please adjust lighting or cube position.');
+                return;
+            }
+
+            colors[currentFace] = faceColors;
+            if (currentFace === 5) {
+                try {
+                    validateCubeState(colors);
+                    setIsScanning(false);
+                    if (videoRef.current?.srcObject) {
+                        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+                    }
+                    onScanComplete(colors);
+                } catch (error) {
+                    alert('Invalid cube state detected. Please try scanning again.');
+                    setCurrentFace(0);
+                    colors.length = 0;
+                }
+            } else {
+                setCurrentFace(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error('Error processing image:', error);
+            alert('Error processing image. Please try again.');
         }
     };
 
