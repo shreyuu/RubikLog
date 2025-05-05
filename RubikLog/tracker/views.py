@@ -8,6 +8,9 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Solve
 from .serializers import SolveSerializer
+from .ml_service import CubeScanner
+import base64
+import numpy as np
 
 
 class SolvePagination(PageNumberPagination):
@@ -78,3 +81,25 @@ class SolveStats(APIView):
         }
         
         return Response(stats)
+
+
+class CubeScanView(APIView):
+    def post(self, request):
+        try:
+            # Get base64 image from request
+            image_data = request.data.get('image')
+            if not image_data:
+                return Response({'error': 'No image data provided'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            # Convert base64 to image
+            image_bytes = base64.b64decode(image_data.split(',')[1])
+            scanner = CubeScanner()
+            colors = scanner.detect_colors(image_bytes)
+
+            return Response({
+                'colors': colors
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)

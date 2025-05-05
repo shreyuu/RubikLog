@@ -40,7 +40,7 @@ class CubeSolvePredictor:
         prediction = self.model.predict(features)
         return float(prediction[0][0])
 
-class CubeScrambleDetector:
+class CubeScanner:
     def __init__(self):
         self._initialize_color_ranges()
         
@@ -64,13 +64,12 @@ class CubeScrambleDetector:
         # Convert BGR to HSV
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
-        # Initialize results
-        detected_colors = []
-        
         # Divide image into 9 sections
         height, width = hsv.shape[:2]
         cell_height = height // 3
         cell_width = width // 3
+        
+        detected_colors = []
         
         # Process each section
         for i in range(3):
