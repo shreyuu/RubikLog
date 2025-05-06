@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 const ScanningGuide = () => (
     <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4">
@@ -14,279 +14,176 @@ const ScanningGuide = () => (
 );
 
 const CubeScanner = ({ onScanComplete }) => {
+    const [isScanning, setIsScanning] = useState(false);
+    const [validationMessage, setValidationMessage] = useState('');
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
-    const [isScanning, setIsScanning] = useState(false);
-    const [currentFace, setCurrentFace] = useState(0);
-    const [detectedColors, setDetectedColors] = useState(Array(9).fill('unknown'));
-    const faces = ['top', 'right', 'front', 'back', 'left', 'bottom'];
-    const colors = [];
+    const streamRef = useRef(null);
+    const [scannedFaces, setScannedFaces] = useState([]);
 
     const startScanning = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            const constraints = {
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'environment'
+                }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoRef.current.srcObject = stream;
+            streamRef.current = stream;
             setIsScanning(true);
-        } catch (err) {
-            console.error('Error accessing webcam:', err);
+            drawScanOverlay();
+        } catch (error) {
+            setValidationMessage('Error accessing camera: ' + error.message);
         }
     };
 
-    const detectColors = () => {
-        if (!canvasRef.current || !videoRef.current) return;
+    const stopScanning = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+            setIsScanning(false);
+            setScannedFaces([]);
+        }
+    };
+
+    const drawScanOverlay = () => {
+        if (!canvasRef.current) return;
         const ctx = canvasRef.current.getContext('2d');
-        const gridSize = 3;
-        const cellWidth = canvasRef.current.width / gridSize;
-        const cellHeight = canvasRef.current.height / gridSize;
+        const { width, height } = canvasRef.current;
 
-        // Draw video frame to canvas
-        ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
 
-        // Analyze each grid cell
-        const faceColors = [];
-        for (let y = 0; y < gridSize; y++) {
-            for (let x = 0; x < gridSize; x++) {
-                let imageData = ctx.getImageData(
-                    x * cellWidth + cellWidth / 4,
-                    y * cellHeight + cellHeight / 4,
-                    cellWidth / 2,
-                    cellHeight / 2
-                );
-                imageData = adjustBrightness(imageData); // Adjust brightness
-                imageData = normalizeColors(imageData); // Normalize colors
-                const color = getAverageColor(imageData.data);
-                faceColors.push(determineRubikColor(color));
-            }
-        }
-        setDetectedColors(faceColors);
-        return faceColors;
-    };
+        // Draw grid
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
 
-    const normalizeColors = (imageData) => {
-        const data = imageData.data;
-        let minBrightness = 255;
-        let maxBrightness = 0;
-
-        // Find min and max brightness
-        for (let i = 0; i < data.length; i += 4) {
-            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-            minBrightness = Math.min(minBrightness, brightness);
-            maxBrightness = Math.max(maxBrightness, brightness);
+        // Draw vertical lines
+        for (let i = 1; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(width * (i / 3), 0);
+            ctx.lineTo(width * (i / 3), height);
+            ctx.stroke();
         }
 
-        const range = maxBrightness - minBrightness;
-        if (range === 0) return imageData;
-
-        // Normalize brightness
-        for (let i = 0; i < data.length; i += 4) {
-            for (let j = 0; j < 3; j++) {
-                data[i + j] = ((data[i + j] - minBrightness) / range) * 255;
-            }
+        // Draw horizontal lines
+        for (let i = 1; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, height * (i / 3));
+            ctx.lineTo(width, height * (i / 3));
+            ctx.stroke();
         }
-
-        return imageData;
-    };
-
-    const getAverageColor = (data) => {
-        let r = 0, g = 0, b = 0;
-        for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-        }
-        const count = data.length / 4;
-        return {
-            r: Math.round(r / count),
-            g: Math.round(g / count),
-            b: Math.round(b / count)
-        };
-    };
-
-    const rgbToHsv = (r, g, b) => {
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const d = max - min;
-        let h, s = max === 0 ? 0 : d / max;
-        const v = max;
-
-        if (max === min) {
-            h = 0;
-        } else {
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-                default: h = 0; break; // Add default case
-            }
-            h /= 6;
-        }
-        return { h: h * 360, s: s * 100, v: v * 100 };
-    };
-
-    const determineRubikColor = (rgb) => {
-        // Updated color references with HSV conversion for better accuracy
-        const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
-
-        // Color definitions with HSV ranges
-        const colorRanges = {
-            white: { h: [0, 360], s: [0, 20], v: [80, 100] },
-            yellow: { h: [50, 70], s: [50, 100], v: [80, 100] },
-            red: { h: [350, 10], s: [60, 100], v: [60, 100] },
-            orange: { h: [20, 35], s: [60, 100], v: [70, 100] },
-            blue: { h: [210, 240], s: [60, 100], v: [50, 100] },
-            green: { h: [100, 140], s: [40, 100], v: [40, 100] }
-        };
-
-        for (const [color, range] of Object.entries(colorRanges)) {
-            const hInRange = (hsv.h >= range.h[0] && hsv.h <= range.h[1]) ||
-                (range.h[0] > range.h[1] && (hsv.h >= range.h[0] || hsv.h <= range.h[1]));
-            const sInRange = hsv.s >= range.s[0] && hsv.s <= range.s[1];
-            const vInRange = hsv.v >= range.v[0] && hsv.v <= range.v[1];
-
-            if (hInRange && sInRange && vInRange) {
-                return color;
-            }
-        }
-        return 'unknown';
-    };
-
-    // Add brightness adjustment
-    const adjustBrightness = (imageData) => {
-        const data = imageData.data;
-        const brightness = 1.2; // Increase brightness by 20%
-
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = Math.min(255, data[i] * brightness);     // Red
-            data[i + 1] = Math.min(255, data[i + 1] * brightness); // Green
-            data[i + 2] = Math.min(255, data[i + 2] * brightness); // Blue
-        }
-        return imageData;
-    };
-
-    const validateCubeState = (colors) => {
-        // Placeholder for cube state validation logic
-        // Implement validation logic as needed
     };
 
     const captureFace = async () => {
-        if (!canvasRef.current || !videoRef.current) return;
+        if (!videoRef.current || scannedFaces.length >= 6) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoRef.current, 0, 0);
 
         try {
-            // Capture current frame to canvas
-            const ctx = canvasRef.current.getContext('2d');
-            ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-
-            // Convert canvas to base64
-            const imageData = canvasRef.current.toDataURL('image/jpeg');
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/jpeg');
 
             // Send to backend
-            const response = await fetch('http://localhost:8000/api/scan-cube/', {
+            const response = await fetch('/api/scan-cube/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: imageData })
+                body: JSON.stringify({ image: imageData }),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to process image');
-            }
+            const data = await response.json();
 
-            const { colors: faceColors } = await response.json();
+            if (data.is_valid) {
+                setScannedFaces(prev => [...prev, data.colors]);
+                setValidationMessage(`Face ${scannedFaces.length + 1}/6 captured successfully`);
 
-            // Validate detected colors
-            if (faceColors.includes('unknown')) {
-                alert('Could not detect all colors clearly. Please adjust lighting or cube position.');
-                return;
-            }
-
-            colors[currentFace] = faceColors;
-            if (currentFace === 5) {
-                try {
-                    validateCubeState(colors);
-                    setIsScanning(false);
-                    if (videoRef.current?.srcObject) {
-                        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-                    }
-                    onScanComplete(colors);
-                } catch (error) {
-                    alert('Invalid cube state detected. Please try scanning again.');
-                    setCurrentFace(0);
-                    colors.length = 0;
+                if (scannedFaces.length + 1 >= 6) {
+                    onScanComplete(scannedFaces);
+                    stopScanning();
                 }
             } else {
-                setCurrentFace(prev => prev + 1);
+                setValidationMessage('Invalid cube face - please try again');
             }
         } catch (error) {
-            console.error('Error processing image:', error);
-            alert('Error processing image. Please try again.');
+            setValidationMessage('Error capturing face: ' + error.message);
         }
     };
 
-    const colorToRGB = {
-        white: '255, 255, 255',
-        yellow: '255, 255, 0',
-        red: '255, 0, 0',
-        orange: '255, 165, 0',
-        blue: '0, 0, 255',
-        green: '0, 255, 0',
-        unknown: '0, 0, 0'
-    };
+    useEffect(() => {
+        if (isScanning) {
+            drawScanOverlay();
+        }
+
+        return () => stopScanning();
+    }, [isScanning]);
 
     return (
-        <div className="bg-white/70 dark:bg-gray-800/70 p-6 rounded-lg shadow-lg">
+        <div className="relative max-w-md mx-auto">
             <ScanningGuide />
-            <h3 className="text-xl font-semibold mb-4">
-                Scan Cube Face: {faces[currentFace]}
-            </h3>
-            <div className="relative">
+
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className="w-full max-w-md mx-auto rounded-lg"
+                    className="w-full h-full object-cover"
+                    onLoadedMetadata={() => {
+                        if (canvasRef.current) {
+                            canvasRef.current.width = videoRef.current.videoWidth;
+                            canvasRef.current.height = videoRef.current.videoHeight;
+                            drawScanOverlay();
+                        }
+                    }}
                 />
                 <canvas
                     ref={canvasRef}
-                    className="absolute top-0 left-0 w-full h-full"
-                    width="640"
-                    height="480"
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
                 />
-                <div className="grid grid-cols-3 absolute top-0 left-0 w-full h-full pointer-events-none">
-                    {detectedColors.map((color, i) => (
-                        <div
-                            key={i}
-                            className={`border-2 ${color === 'unknown'
-                                ? 'border-white/50'
-                                : `border-${color}-500`
-                                }`}
-                            style={{
-                                backgroundColor: color !== 'unknown'
-                                    ? `rgba(${colorToRGB[color]}, 0.3)`
-                                    : 'transparent'
-                            }}
-                        />
-                    ))}
-                </div>
             </div>
-            <div className="mt-4 flex justify-center gap-4">
+
+            <div className="mt-4 space-y-4">
                 {!isScanning ? (
                     <button
                         onClick={startScanning}
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
                     >
                         Start Scanning
                     </button>
                 ) : (
-                    <button
-                        onClick={captureFace}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg"
-                    >
-                        Capture {faces[currentFace]} Face
-                    </button>
+                    <div className="space-y-4">
+                        <button
+                            onClick={captureFace}
+                            className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
+                            disabled={scannedFaces.length >= 6}
+                        >
+                            Capture Face ({scannedFaces.length}/6)
+                        </button>
+                        <button
+                            onClick={stopScanning}
+                            className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                            Stop Scanning
+                        </button>
+                    </div>
+                )}
+
+                {validationMessage && (
+                    <div className={`p-3 rounded-lg text-center ${validationMessage.includes('Error')
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                        {validationMessage}
+                    </div>
                 )}
             </div>
         </div>

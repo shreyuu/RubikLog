@@ -6,11 +6,14 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
 from .models import Solve
 from .serializers import SolveSerializer
 from .ml_service import CubeScanner
 import base64
 import numpy as np
+import cv2
 
 
 class SolvePagination(PageNumberPagination):
@@ -103,3 +106,36 @@ class CubeScanView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, 
                           status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def scan_cube(request):
+    try:
+        # Get image data from request
+        image_data = request.FILES.get('image')
+        if not image_data:
+            return JsonResponse({'error': 'No image data received'}, status=400)
+
+        # Convert image data to numpy array
+        nparr = np.frombuffer(image_data.read(), np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Process image with CubeScanner
+        scanner = CubeScanner()
+        result = scanner.process_frame(image)
+        
+        if result is None:
+            return JsonResponse({'error': 'Failed to process image'}, status=400)
+            
+        # Convert numpy array to list for JSON serialization
+        result['preview'] = cv2.imencode('.jpg', result['preview'])[1].tobytes().decode('latin1')
+        
+        return JsonResponse({
+            'colors': result['colors'],
+            'preview': result['preview'],
+            'is_valid': result['is_valid']
+        })
+        
+    except Exception as e:
+        print(f"Error in scan_cube: {str(e)}")  # Debug logging
+        return JsonResponse({'error': str(e)}, status=500)
