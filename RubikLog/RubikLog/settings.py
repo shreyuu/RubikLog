@@ -67,6 +67,10 @@ MIDDLEWARE = [
 # Allow communication from React frontend
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
+# Allow larger file uploads
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+
 ROOT_URLCONF = 'RubikLog.urls'
 
 TEMPLATES = [
