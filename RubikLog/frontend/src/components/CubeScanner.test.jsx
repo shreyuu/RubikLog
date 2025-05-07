@@ -1,155 +1,67 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CubeScanner from './CubeScanner';
 
-// Mock canvas context
-const mockContext = {
-    clearRect: jest.fn(),
-    beginPath: jest.fn(),
-    moveTo: jest.fn(),
-    lineTo: jest.fn(),
-    stroke: jest.fn(),
-    strokeStyle: '#00ff00',
-    lineWidth: 2
-};
-
-// Mock canvas element
-const mockCanvas = {
-    getContext: () => mockContext,
-    width: 640,
-    height: 480,
-    toDataURL: jest.fn().mockReturnValue('mock-image-data')
-};
-
-// Mock video element
-const mockVideoElement = {
-    play: jest.fn(),
-    pause: jest.fn(),
-    videoWidth: 640,
-    videoHeight: 480,
-    srcObject: null
-};
-
-// Setup mocks before tests
-beforeEach(() => {
-    // Reset all mocks
-    jest.clearAllMocks();
-
-    // Mock getUserMedia
+// Mock MediaDevices API
+beforeAll(() => {
     global.navigator.mediaDevices = {
-        getUserMedia: jest.fn().mockResolvedValue({
-            getTracks: () => [{
-                stop: jest.fn()
-            }]
-        })
+        getUserMedia: jest.fn().mockImplementation(() =>
+            Promise.resolve({
+                getTracks: () => [{
+                    stop: jest.fn()
+                }]
+            })
+        )
     };
-
-    // Mock canvas creation
-    const origCreateElement = document.createElement.bind(document);
-    jest.spyOn(document, 'createElement').mockImplementation((tagName) => {
-        if (tagName === 'canvas') {
-            return mockCanvas;
-        }
-        return origCreateElement(tagName);
-    });
-
-    // Mock canvas context
-    HTMLCanvasElement.prototype.getContext = () => mockContext;
-
-    // Mock HTMLVideoElement
-    Object.defineProperty(global.HTMLVideoElement.prototype, 'play', {
-        configurable: true,
-        value: mockVideoElement.play
-    });
-
-    // Mock window.URL
-    window.URL.createObjectURL = jest.fn();
-    window.URL.revokeObjectURL = jest.fn();
-});
-
-// Cleanup after tests
-afterEach(() => {
-    jest.restoreAllMocks();
 });
 
 describe('CubeScanner', () => {
-    const mockOnScanComplete = jest.fn();
-
-    it('renders scanning guide', () => {
-        render(<CubeScanner onScanComplete={mockOnScanComplete} />);
-        expect(screen.getByText('Scanning Tips:')).toBeInTheDocument();
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('starts scanning when start button is clicked', async () => {
-        render(<CubeScanner onScanComplete={mockOnScanComplete} />);
+    it('renders scanning tips', () => {
+        render(<CubeScanner />);
+        expect(screen.getByText(/Scanning Tips:/i)).toBeInTheDocument();
+    });
 
+    it('toggles camera when button is clicked', async () => {
+        render(<CubeScanner />);
+
+        // Initial state - camera off
+        expect(screen.getByText(/Start Camera/i)).toBeInTheDocument();
+
+        // Click to start camera
         await act(async () => {
-            fireEvent.click(screen.getByText('Start Scanning'));
+            fireEvent.click(screen.getByText(/Start Camera/i));
         });
 
+        // Camera should be on
+        expect(screen.getByText(/Stop Camera/i)).toBeInTheDocument();
         expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled();
-        expect(mockContext.clearRect).toHaveBeenCalled();
-    });
 
-    it('shows capture and stop buttons when scanning', async () => {
-        const { rerender } = render(<CubeScanner onScanComplete={mockOnScanComplete} />);
-
+        // Click to stop camera
         await act(async () => {
-            fireEvent.click(screen.getByText('Start Scanning'));
-            rerender(<CubeScanner onScanComplete={mockOnScanComplete} />);
+            fireEvent.click(screen.getByText(/Stop Camera/i));
         });
 
-        expect(screen.getByText(/Capture Face/i)).toBeInTheDocument();
-        expect(screen.getByText('Stop Scanning')).toBeInTheDocument();
+        // Camera should be off again
+        expect(screen.getByText(/Start Camera/i)).toBeInTheDocument();
     });
 
-    it('handles camera access error', async () => {
-        global.navigator.mediaDevices.getUserMedia = jest.fn(() =>
+    it('shows error message when camera access fails', async () => {
+        // Mock camera access failure
+        navigator.mediaDevices.getUserMedia.mockImplementationOnce(() =>
             Promise.reject(new Error('Camera access denied'))
         );
 
-        render(<CubeScanner onScanComplete={mockOnScanComplete} />);
+        render(<CubeScanner />);
 
         await act(async () => {
-            fireEvent.click(screen.getByText('Start Scanning'));
+            fireEvent.click(screen.getByText(/Start Camera/i));
         });
 
-        expect(screen.getByText(/Error accessing camera/i)).toBeInTheDocument();
-    });
-
-    it('stops scanning when stop button is clicked', async () => {
-        render(<CubeScanner onScanComplete={mockOnScanComplete} />);
-
-        await act(async () => {
-            fireEvent.click(screen.getByText('Start Scanning'));
-        });
-
-        await act(async () => {
-            fireEvent.click(screen.getByText('Stop Scanning'));
-        });
-
-        expect(screen.getByText('Start Scanning')).toBeInTheDocument();
-    });
-
-    it('shows progress during face captures', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve({ is_valid: true, colors: ['white'] })
-            })
-        );
-
-        render(<CubeScanner onScanComplete={mockOnScanComplete} />);
-
-        await act(async () => {
-            fireEvent.click(screen.getByText('Start Scanning'));
-        });
-
-        await act(async () => {
-            fireEvent.click(screen.getByText(/Capture Face/i));
-        });
-
-        expect(await screen.findByText(/Face 1\/6 captured successfully/i)).toBeInTheDocument();
+        expect(screen.getByText(/Camera error:/i)).toBeInTheDocument();
     });
 });

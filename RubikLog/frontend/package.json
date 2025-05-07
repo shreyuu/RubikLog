@@ -13,8 +13,9 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --coverage --watchAll=false --testResultsProcessor=jest-summary-reporter",
+    "test": "react-scripts test --coverage --watchAll=false",
     "test:watch": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
     "test:summary": "react-scripts test --coverage --coverageReporters='text-summary'",
     "eject": "react-scripts eject"
   },
