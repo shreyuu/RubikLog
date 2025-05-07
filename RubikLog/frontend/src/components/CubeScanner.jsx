@@ -71,7 +71,10 @@ const CubeScanner = () => {
                 />
 
                 {error && (
-                    <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 text-center">
+                    <div
+                        role="alert"
+                        className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 text-center"
+                    >
                         {error}
                     </div>
                 )}

@@ -3,22 +3,29 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CubeScanner from './CubeScanner';
 
-// Mock MediaDevices API
+// Mock HTMLMediaElement.play()
 beforeAll(() => {
+    // Mock navigator.mediaDevices
     global.navigator.mediaDevices = {
-        getUserMedia: jest.fn().mockImplementation(() =>
-            Promise.resolve({
-                getTracks: () => [{
-                    stop: jest.fn()
-                }]
-            })
-        )
+        getUserMedia: jest.fn()
     };
+
+    // Mock HTMLMediaElement.play
+    window.HTMLMediaElement.prototype.play = () => Promise.resolve();
+    window.HTMLMediaElement.prototype.pause = () => { };
 });
 
 describe('CubeScanner', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Setup success response
+        navigator.mediaDevices.getUserMedia.mockImplementation(() =>
+            Promise.resolve({
+                getTracks: () => [{
+                    stop: jest.fn()
+                }]
+            })
+        );
     });
 
     it('renders scanning tips', () => {
@@ -29,24 +36,22 @@ describe('CubeScanner', () => {
     it('toggles camera when button is clicked', async () => {
         render(<CubeScanner />);
 
-        // Initial state - camera off
-        expect(screen.getByText(/Start Camera/i)).toBeInTheDocument();
-
         // Click to start camera
         await act(async () => {
             fireEvent.click(screen.getByText(/Start Camera/i));
+            // Wait for state updates
+            await Promise.resolve();
         });
 
-        // Camera should be on
         expect(screen.getByText(/Stop Camera/i)).toBeInTheDocument();
         expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled();
 
         // Click to stop camera
         await act(async () => {
             fireEvent.click(screen.getByText(/Stop Camera/i));
+            await Promise.resolve();
         });
 
-        // Camera should be off again
         expect(screen.getByText(/Start Camera/i)).toBeInTheDocument();
     });
 
@@ -60,8 +65,11 @@ describe('CubeScanner', () => {
 
         await act(async () => {
             fireEvent.click(screen.getByText(/Start Camera/i));
+            // Wait for error state to be set
+            await Promise.resolve();
         });
 
-        expect(screen.getByText(/Camera error:/i)).toBeInTheDocument();
+        const errorDiv = screen.getByRole('alert');
+        expect(errorDiv).toHaveTextContent(/Camera error: Camera access denied/i);
     });
 });
