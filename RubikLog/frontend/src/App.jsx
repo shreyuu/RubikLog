@@ -4,6 +4,7 @@ import DeleteButton from "./components/DeleteButton";
 import { generateScramble } from "./utils/scrambleGenerator";
 import CubeScanner from "./components/CubeScanner";
 import { generateScrambleFromColors } from "./utils/cubeNotation";
+import ScrambleVisualizer from './components/ScrambleVisualizer';
 
 const API_URL = 'http://127.0.0.1:8000/api';
 const TIMEOUT_DURATION = 5000; // 5 seconds
@@ -508,6 +509,9 @@ function App() {
                                     </button>
                                 </div>
                             </label>
+                        </div>
+                        <div className="mb-4">
+                            {scramble && <ScrambleVisualizer scramble={scramble} />}
                         </div>
                         <div className="mb-4">
                             <button
