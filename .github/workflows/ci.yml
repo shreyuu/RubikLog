@@ -64,8 +64,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-          cache: 'npm'
-          cache-dependency-path: './RubikLog/frontend/package-lock.json'
+          cache: "npm"
+          cache-dependency-path: "./RubikLog/frontend/package-lock.json"
 
       - name: Install dependencies
         working-directory: RubikLog/frontend
@@ -79,7 +79,7 @@ jobs:
       - name: Run frontend tests
         working-directory: RubikLog/frontend
         run: |
-          CI=true npm test -- --watchAll=false
+          CI=true npm run test
 
       - name: Build frontend
         working-directory: RubikLog/frontend
