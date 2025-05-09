@@ -31,6 +31,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-ld!$v-9h%j)4f*2w$q5
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if not DEBUG else ['localhost', '127.0.0.1']
+ALLOWED_HOSTS += ['.vercel.app']
 
 
 # Application definition
@@ -66,6 +67,7 @@ MIDDLEWARE = [
 
 # Allow communication from React frontend
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOWED_ORIGINS += ['https://*.vercel.app']
 
 # Allow larger file uploads
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
