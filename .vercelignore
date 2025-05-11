@@ -1,0 +1,9 @@
+rubiklogenv
+rubiklogenv-py311/
+__pycache__/
+*.pyc
+.git/
+.env
+*.log
+node_modules/
+frontend/node_modules/
