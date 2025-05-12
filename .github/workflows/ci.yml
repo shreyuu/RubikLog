@@ -35,21 +35,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Python dependencies
-        working-directory: RubikLog
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run migrations
-        working-directory: RubikLog
         run: |
           python manage.py migrate
 
       - name: Run backend tests
-        working-directory: RubikLog
         run: |
           python manage.py test
 
@@ -65,10 +62,10 @@ jobs:
         with:
           node-version: "18"
           cache: "npm"
-          cache-dependency-path: "./RubikLog/frontend/package-lock.json"
+          cache-dependency-path: "frontend/package-lock.json"
 
       - name: Install dependencies
-        working-directory: RubikLog/frontend
+        working-directory: frontend
         run: |
           npm install
           npm install --legacy-peer-deps
@@ -77,11 +74,11 @@ jobs:
           npm install web-vitals@^2.1.4 --save --legacy-peer-deps
 
       - name: Run frontend tests
-        working-directory: RubikLog/frontend
+        working-directory: frontend
         run: |
           CI=true npm run test
 
       - name: Build frontend
-        working-directory: RubikLog/frontend
+        working-directory: frontend
         run: |
           npm run build
