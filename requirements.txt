@@ -1,4 +1,4 @@
-asgipf==3.8.1
+asgiref==3.8.1
 dataclasses==0.6
 Django>=4.2.0
 django-cors-headers>=4.3.0
