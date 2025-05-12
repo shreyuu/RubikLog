@@ -6,3 +6,8 @@ __pycache__/
 *.pyc
 rubiklogenv-py311
 .vercel
+
+# In frontend/.gitignore
+build/
+dist/
+node_modules/
