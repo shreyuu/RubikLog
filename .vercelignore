@@ -1,9 +1,54 @@
-rubiklogenv
-rubiklogenv-py311/
-__pycache__/
-*.pyc
-.git/
+# Virtual Environments
+*env*/
+*venv*/
+RubikLog/rubiklogenv-py311/
 .env
-*.log
-node_modules/
-frontend/node_modules/
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node modules and frontend build caches
+**/node_modules/
+**/.next/
+**/.nuxt/
+**/.cache/
+**/dist/
+**/build/
+**/.output/
+
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.pytest_cache/
+**/.coverage
+**/.tox/
+
+# Django specific
+**/media/
+**/local_settings.py
+**/db.sqlite3
+**/db.sqlite3-journal
+
+# Development and editor files
+**/.git/
+**/.github/
+**/.idea/
+**/.vscode/
+**/*.log
+**/.DS_Store
+
+# Large data files
+**/*.csv
+**/*.json
+**/*.dump
+**/*.tar
+**/*.gz
+**/*.zip
+
+RubikLog/rubiklogenv-py311/
+RubikLog/frontend/node_modules/
+RubikLog/frontend/node_modules/.cache/
