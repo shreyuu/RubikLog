@@ -5,7 +5,6 @@ RubikLog/.env
 __pycache__/
 *.pyc
 rubiklogenv-py311
-.vercel
 
 # In frontend/.gitignore
 build/
