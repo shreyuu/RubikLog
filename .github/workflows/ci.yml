@@ -12,22 +12,15 @@ jobs:
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: shreyuu
-          POSTGRES_DB: rubiklogdb
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-        ports:
-          - 5432:5432
     env:
-      DATABASE_URL: postgres://postgres:shreyuu@localhost:5432/rubiklogdb
+      POSTGRES_DB: rubiklogdb
+      POSTGRES_USER: shreyuu
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: dpg-d0hnhot6ubrc73ah6vig-a.oregon-postgres.render.com
+      POSTGRES_PORT: 5432
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_DEBUG: False
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,.oregon-postgres.render.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
