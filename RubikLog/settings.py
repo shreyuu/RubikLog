@@ -104,6 +104,7 @@ DATABASES = {
         'PASSWORD': config('POSTGRES_PASSWORD'),
         'HOST': config('POSTGRES_HOST'),
         'PORT': config('POSTGRES_PORT', cast=int),
+        'CONN_MAX_AGE': 600,  # Connection pooling: keep connections alive for 10 minutes
     }
 }
 

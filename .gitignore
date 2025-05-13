@@ -10,3 +10,4 @@ rubiklogenv-py311
 build/
 dist/
 node_modules/
+frontend/.env
