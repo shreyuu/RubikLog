@@ -12,25 +12,27 @@ jobs:
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: shreyuu
-          POSTGRES_DB: rubiklogdb
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-        ports:
-          - 5432:5432
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
     env:
-      DATABASE_URL: postgres://postgres:shreyuu@localhost:5432/rubiklogdb
+      POSTGRES_DB: rubiklogdb
+      POSTGRES_USER: shreyuu
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: dpg-d0hnhot6ubrc73ah6vig-a.oregon-postgres.render.com
+      POSTGRES_PORT: 5432
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_DEBUG: ${{ github.ref != 'refs/heads/main' }}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,.oregon-postgres.render.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug env (without sensitive values)
+        run: |
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_HOST: $POSTGRES_HOST"
+          echo "POSTGRES_PASSWORD is set: ${POSTGRES_PASSWORD:+yes}"
+          echo "Current environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Debug mode: ${{ github.ref != 'refs/heads/main' }}"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -48,7 +50,7 @@ jobs:
 
       - name: Run backend tests
         run: |
-          python manage.py test
+          python manage.py test --noinput --keepdb
 
   frontend:
     name: Frontend CI
