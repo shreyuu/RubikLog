@@ -50,7 +50,7 @@ jobs:
 
       - name: Run backend tests
         run: |
-          python manage.py test
+          python manage.py test --noinput --keepdb
 
   frontend:
     name: Frontend CI
