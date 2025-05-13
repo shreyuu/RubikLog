@@ -104,7 +104,10 @@ DATABASES = {
         'PASSWORD': config('POSTGRES_PASSWORD'),
         'HOST': config('POSTGRES_HOST'),
         'PORT': config('POSTGRES_PORT', cast=int),
-        'CONN_MAX_AGE': 600,  # Connection pooling: keep connections alive for 10 minutes
+        'CONN_MAX_AGE': 60,  # Reduce connection lifetime
+        'OPTIONS': {
+            'connect_timeout': 5,  # Reduce connection timeout
+        },
     }
 }
 
@@ -153,15 +156,45 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Cache settings - Use file-based cache instead of memory cache
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/django_cache',
+    }
+}
+
+# Reduce cache timeout
+CACHE_TTL = 60  # 1 minute
+
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 5,  # Reduce page size
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_ORDERING_FIELDS': ['created_at', 'time_taken'],
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-    }
+        'anon': '50/day',  # Reduce rate limit
+    },
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': CACHE_TTL,
+}
+
+# Database logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
 }

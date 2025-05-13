@@ -3,9 +3,15 @@ from django.core.exceptions import ValidationError
 
 # Create your models here.
 class Solve(models.Model):
-    time_taken = models.FloatField()
+    time_taken = models.FloatField(db_index=True)
     scramble = models.CharField(max_length=200, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['time_taken']),
+        ]
     
     def __str__(self):
         return f"{self.time_taken}s - {self.created_at.strftime('%d %b %Y %H:%M:%S')}"
