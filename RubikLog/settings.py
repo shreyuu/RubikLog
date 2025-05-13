@@ -12,25 +12,26 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-from decouple import config
-
-SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-ld!$v-9h%j)4f*2w$q5a^8v(gs-q4==z-2qh+0jpys8p9if&v8')
-DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
+from decouple import config, UndefinedValueError
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Security settings
+try:
+    SECRET_KEY = config('DJANGO_SECRET_KEY')
+except UndefinedValueError:
+    SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-4+cbn@#2u0f6k3byy8be*u%!p#@8i!_shftz*pvlm1he0l@%&1')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-ld!$v-9h%j)4f*2w$q5a^8v(gs-q4==z-2qh+0jpys8p9if&v8')
+# Fixed ALLOWED_HOSTS configuration
+ALLOWED_HOSTS = config(
+    'DJANGO_ALLOWED_HOSTS',
+    default='localhost,127.0.0.1',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
-
-ALLOWED_HOSTS = ['*']
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
@@ -98,11 +99,11 @@ WSGI_APPLICATION = 'RubikLog.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'rubiklogdb'),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'shreyuu'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': config('POSTGRES_DB'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
+        'HOST': config('POSTGRES_HOST'),
+        'PORT': config('POSTGRES_PORT', cast=int),
     }
 }
 
