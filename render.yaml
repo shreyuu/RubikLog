@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: rubiklog
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn RubikLog.wsgi:application -c gunicorn_config.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: DJANGO_SETTINGS_MODULE
+        value: RubikLog.settings
+      - key: DJANGO_DEBUG
+        value: false
+    healthCheckPath: /api/solves/
+    autoDeploy: true
+    plan: free

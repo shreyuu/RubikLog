@@ -11,15 +11,36 @@ from rest_framework.decorators import api_view
 from .models import Solve
 from .serializers import SolveSerializer
 from .ml_service import CubeScanner
+from django.core.cache import cache
+from django.conf import settings
+from django.db import connection
+from django.db.models.query import QuerySet
 import base64
 import numpy as np
 import cv2
+import time
+import logging
 
+logger = logging.getLogger(__name__)
 
 class SolvePagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
+
+
+def log_query(query):
+    """Log the SQL query and its execution time"""
+    start_time = time.time()
+    try:
+        result = list(query)
+        end_time = time.time()
+        logger.debug(f"Query executed in {end_time - start_time:.2f} seconds")
+        logger.debug(f"SQL: {query.query}")
+        return result
+    except Exception as e:
+        logger.error(f"Query failed: {str(e)}")
+        raise
 
 
 # Create your views here.
@@ -36,30 +57,80 @@ class SolveList(APIView):
         responses={200: SolveSerializer(many=True)}
     )
     def get(self, request):
-        # Add filtering and sorting options
-        filters = {}
-        if 'min_time' in request.query_params:
-            filters['time_taken__gte'] = float(request.query_params['min_time'])
-        if 'max_time' in request.query_params:
-            filters['time_taken__lte'] = float(request.query_params['max_time'])
-            
-        sort_by = request.query_params.get('sort_by', '-created_at')
-        solves = Solve.objects.filter(**filters).order_by(sort_by)
+        start_time = time.time()
+        logger.info("Starting SolveList.get request")
         
-        # Add proper pagination
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(solves, request)
-        serializer = SolveSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        try:
+            # Generate cache key based on query parameters
+            cache_key = f"solves_list_{request.query_params}"
+            
+            # Try to get from cache first
+            cached_response = cache.get(cache_key)
+            if cached_response:
+                logger.info(f"Cache hit for {cache_key}")
+                return Response(cached_response)
+                
+            # Add filtering and sorting options
+            filters = {}
+            if 'min_time' in request.query_params:
+                filters['time_taken__gte'] = float(request.query_params['min_time'])
+            if 'max_time' in request.query_params:
+                filters['time_taken__lte'] = float(request.query_params['max_time'])
+                
+            sort_by = request.query_params.get('sort_by', '-created_at')
+            
+            # Optimize query by using select_related and prefetch_related for related data fetching
+            solves = Solve.objects.filter(**filters).select_related('user').prefetch_related('tags').order_by(sort_by)
+            
+            # Log the query plan
+            with connection.cursor() as cursor:
+                cursor.execute(f"EXPLAIN ANALYZE {solves.query}")
+                query_plan = cursor.fetchall()
+                logger.debug("Query plan:")
+                for row in query_plan:
+                    logger.debug(row[0])
+            
+            # Execute query with logging
+            solves_list = log_query(solves)
+            
+            # Add proper pagination
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(solves_list, request)
+            serializer = SolveSerializer(page, many=True)
+            response_data = paginator.get_paginated_response(serializer.data).data
+            
+            # Cache the response
+            cache.set(cache_key, response_data, settings.CACHE_TTL)
+            
+            end_time = time.time()
+            logger.info(f"Request completed in {end_time - start_time:.2f} seconds")
+            
+            return Response(response_data)
+            
+        except Exception as e:
+            logger.error(f"Error in SolveList.get: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "Failed to fetch solves. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def post(self, request):
-        print("Received data:", request.data)  # Debug log
-        serializer = SolveSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        print("Validation errors:", serializer.errors)  # Debug log
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        logger.info("Starting SolveList.post request")
+        try:
+            serializer = SolveSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                # Clear the cache when new data is added
+                cache.clear()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            logger.warning(f"Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error in SolveList.post: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "Failed to create solve. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class SolveDetail(APIView):
@@ -98,8 +169,12 @@ class CubeScanView(APIView):
             # Convert base64 to image
             image_bytes = base64.b64decode(image_data.split(',')[1])
             scanner = CubeScanner()
-            colors = scanner.detect_colors(image_bytes)
-
+            result = scanner.process_frame(image_bytes)
+            if result is None:
+                return Response({'error': 'Failed to process image'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+                
+            colors = result['colors']
             return Response({
                 'colors': colors
             }, status=status.HTTP_200_OK)

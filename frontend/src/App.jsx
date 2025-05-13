@@ -9,25 +9,60 @@ import ScrambleVisualizer from './components/ScrambleVisualizer';
 // Update API_URL to use relative path
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
 
-const TIMEOUT_DURATION = 5000; // 5 seconds
+const TIMEOUT_DURATION = 15000; // 15 seconds
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
-const fetchWithTimeout = async (url, options = {}) => {
+const fetchWithTimeout = async (url, options = {}, retryCount = 0) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
+    console.log(`Attempt ${retryCount + 1} of ${MAX_RETRIES + 1} for ${url}`);
 
     try {
+        console.log('Making fetch request...');
         const response = await fetch(url, {
             ...options,
-            signal: controller.signal
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json',
+                ...options.headers
+            }
         });
+        console.log('Fetch request completed');
         clearTimeout(timeout);
+
+        // Add more detailed error logging
+        if (!response.ok) {
+            console.error('API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url
+            });
+        }
+
         return response;
     } catch (error) {
         clearTimeout(timeout);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timed out');
+        console.error('Fetch Error Details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            type: error.type,
+            url: url,
+            attempt: retryCount + 1
+        });
+
+        // Retry logic
+        if (retryCount < MAX_RETRIES && (error.name === 'AbortError' || error.message.includes('Network error'))) {
+            console.log(`Retrying in ${RETRY_DELAY}ms...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return fetchWithTimeout(url, options, retryCount + 1);
         }
-        throw error;
+
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out after multiple attempts');
+        }
+        throw new Error(`Network error: ${error.message}`);
     }
 };
 
@@ -102,6 +137,8 @@ function App() {
     const [sortOrder, setSortOrder] = useState('latest');
     const ITEMS_PER_PAGE = 10;
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
     // Format time function
     const formatTime = (timeString) => {
@@ -165,26 +202,42 @@ function App() {
         return sortedSolves.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     }, [sortedSolves, currentPage]);
 
-    const totalPages = Math.ceil(sortedSolves.length / ITEMS_PER_PAGE);
+    const fetchPagedSolves = async (page) => {
+        try {
+            console.log('Fetching page:', page);
+            console.log('API URL:', `${API_URL}/solves/?page=${page}`);
+
+            const response = await fetchWithTimeout(`${API_URL}/solves/?page=${page}`);
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error Response:', errorText);
+                throw new Error(`Failed to fetch solves: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Received data:', data);
+            setSolves(data.results || []);
+            setTotalItems(data.count || 0);
+            setTotalPages(Math.ceil((data.count || 0) / ITEMS_PER_PAGE));
+            setIsLoading(false);
+        } catch (err) {
+            console.error('Fetch Error Details:', {
+                message: err.message,
+                stack: err.stack,
+                name: err.name
+            });
+            setError('Error loading solves: ' + err.message);
+            setIsLoading(false);
+            setSolves([]);
+        }
+    };
 
     useEffect(() => {
-        const fetchSolves = async () => {
-            try {
-                const response = await fetchWithTimeout(`${API_URL}/solves/`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch solves');
-                }
-                const data = await response.json();
-                setSolves(data.results); // Set the results array from the response
-                setIsLoading(false);
-            } catch (err) {
-                setError('Error loading solves: ' + err.message);
-                setIsLoading(false);
-            }
-        };
-
-        fetchSolves();
-    }, []); // Empty dependency array means this runs once on mount
+        fetchPagedSolves(currentPage);
+    }, [currentPage]); // Dependencies array includes currentPage
 
     // Stopwatch logic
     useEffect(() => {
