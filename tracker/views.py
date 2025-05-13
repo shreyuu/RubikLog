@@ -79,8 +79,8 @@ class SolveList(APIView):
                 
             sort_by = request.query_params.get('sort_by', '-created_at')
             
-            # Optimize query by using select_related and prefetch_related
-            solves = Solve.objects.filter(**filters).order_by(sort_by)
+            # Optimize query by using select_related and prefetch_related for related data fetching
+            solves = Solve.objects.filter(**filters).select_related('user').prefetch_related('tags').order_by(sort_by)
             
             # Log the query plan
             with connection.cursor() as cursor:
