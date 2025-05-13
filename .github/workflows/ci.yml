@@ -12,6 +12,7 @@ jobs:
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
     env:
       POSTGRES_DB: rubiklogdb
       POSTGRES_USER: shreyuu
@@ -19,11 +20,19 @@ jobs:
       POSTGRES_HOST: dpg-d0hnhot6ubrc73ah6vig-a.oregon-postgres.render.com
       POSTGRES_PORT: 5432
       DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-      DJANGO_DEBUG: False
+      DJANGO_DEBUG: ${{ github.ref != 'refs/heads/main' }}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,.oregon-postgres.render.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug env (without sensitive values)
+        run: |
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_HOST: $POSTGRES_HOST"
+          echo "POSTGRES_PASSWORD is set: ${POSTGRES_PASSWORD:+yes}"
+          echo "Current environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Debug mode: ${{ github.ref != 'refs/heads/main' }}"
 
       - name: Set up Python
         uses: actions/setup-python@v4
