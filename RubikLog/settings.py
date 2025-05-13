@@ -12,17 +12,25 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-from decouple import config
+from decouple import config, UndefinedValueError
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
-SECRET_KEY = config('DJANGO_SECRET_KEY')
+try:
+    SECRET_KEY = config('DJANGO_SECRET_KEY')
+except UndefinedValueError:
+    SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-4+cbn@#2u0f6k3byy8be*u%!p#@8i!_shftz*pvlm1he0l@%&1')
+
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-# Method 2: Using list comprehension with string cleaning
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')]
+# Fixed ALLOWED_HOSTS configuration
+ALLOWED_HOSTS = config(
+    'DJANGO_ALLOWED_HOSTS',
+    default='localhost,127.0.0.1',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 CORS_ALLOW_ALL_ORIGINS = True
 
