@@ -14,6 +14,12 @@ services:
         value: RubikLog.settings
       - key: DJANGO_DEBUG
         value: false
+      - key: TF_CPP_MIN_LOG_LEVEL
+        value: 2 # Reduce TensorFlow logging
+      - key: TF_FORCE_GPU_ALLOW_GROWTH
+        value: true
+      - key: TF_MEMORY_ALLOCATION
+        value: 256 # Limit TensorFlow memory usage
     healthCheckPath: /api/solves/
     autoDeploy: true
     plan: free
