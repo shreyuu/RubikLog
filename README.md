@@ -165,4 +165,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Shreyash Meshram - [shreyashmeshram0031@gmail.com](mailto:shreyashmeshram0031@gmail.com)
 
-Project Link: [https://github.com/shreyuu/RubikLog](https://github.com/shreyuu/RubikLog)
