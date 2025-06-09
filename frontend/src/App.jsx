@@ -205,9 +205,10 @@ function App() {
     const fetchPagedSolves = async (page) => {
         try {
             console.log('Fetching page:', page);
-            console.log('API URL:', `${API_URL}/solves/?page=${page}`);
+            // Remove the page parameter since your backend uses different pagination
+            console.log('API URL:', `${API_URL}/solves/`);
 
-            const response = await fetchWithTimeout(`${API_URL}/solves/?page=${page}`);
+            const response = await fetchWithTimeout(`${API_URL}/solves/`);
             console.log('Response status:', response.status);
             console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
@@ -219,9 +220,18 @@ function App() {
 
             const data = await response.json();
             console.log('Received data:', data);
-            setSolves(data.results || []);
-            setTotalItems(data.count || 0);
-            setTotalPages(Math.ceil((data.count || 0) / ITEMS_PER_PAGE));
+
+            // Handle the Django REST framework pagination response
+            if (data.results) {
+                setSolves(data.results);
+                setTotalItems(data.count || 0);
+                setTotalPages(Math.ceil((data.count || 0) / ITEMS_PER_PAGE));
+            } else {
+                // Fallback for non-paginated response
+                setSolves(Array.isArray(data) ? data : []);
+                setTotalItems(Array.isArray(data) ? data.length : 0);
+                setTotalPages(1);
+            }
             setIsLoading(false);
         } catch (err) {
             console.error('Fetch Error Details:', {
@@ -464,7 +474,7 @@ function App() {
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                         strokeWidth={2}
-                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 9.003 9.003 0 008.354-5.646z"
+                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 9.003 0 008.354-5.646z"
                                     />
                                 </svg>
                             )}
