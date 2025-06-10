@@ -26,7 +26,14 @@ except UndefinedValueError:
         "django-insecure-4+cbn@#2u0f6k3byy8be*u%!p#@8i!_shftz*pvlm1he0l@%&1",
     )
 
-DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
+# Remove or secure DEBUG in production
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+
+# Add security headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 
 # Fixed ALLOWED_HOSTS configuration
 ALLOWED_HOSTS = config(
