@@ -1,13 +1,67 @@
-rubiklogenv
-RubikLog/.env
-.DS_Store
-.vscode/settings.json
+# Python
 __pycache__/
-*.pyc
-rubiklogenv-py311
-
-# In frontend/.gitignore
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 build/
+develop-eggs/
 dist/
-node_modules/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Virtual Environment
+rubiklogenv/
+rubiklogenv-py311/
+venv/
+ENV/
+
+# Environment files
+.env
+RubikLog/.env
 frontend/.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+/frontend/node_modules/
+/frontend/.pnp
+/frontend/.pnp.js
+/frontend/coverage
+/frontend/build
+/frontend/.DS_Store
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+# Static files
+/staticfiles/
