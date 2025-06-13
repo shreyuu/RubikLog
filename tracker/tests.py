@@ -1,8 +1,13 @@
+from django.db import models
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Solve
 from django.urls import reverse
+
+class Solve(models.Model):
+    id = models.AutoField(primary_key=True)
+    time_taken = models.FloatField()
+    scramble = models.CharField(max_length=255)
 
 class SolveTests(TestCase):
     def setUp(self):
@@ -21,7 +26,8 @@ class SolveTests(TestCase):
 
     def test_delete_solve(self):
         solve = Solve.objects.create(**self.solve_data)
-        response = self.client.delete(f'/api/solves/{solve.id}/')
+        url = reverse('solve-detail', kwargs={'pk': solve.id})
+        response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Solve.objects.count(), 0)
 

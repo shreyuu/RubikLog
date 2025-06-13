@@ -99,15 +99,31 @@ class CubeScanner:
                 logger.error("Failed to decode image")
                 return None
                 
-            # Initialize TensorFlow only when needed
-            self._initialize()
-            
             # Process image
-            # ... rest of your image processing code ...
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            
+            # Get image dimensions
+            h, w = image.shape[:2]
+            cell_height = h // self.grid_size
+            cell_width = w // self.grid_size
+            
+            # Detect colors in grid
+            colors = []
+            confidences = []
+            
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    color, confidence = self._process_cell(hsv, i, j, cell_height, cell_width)
+                    colors.append(color)
+                    confidences.append(confidence)
+            
+            # Validate the detected colors
+            is_valid = self._validate_colors(colors)
             
             return {
-                'colors': ['white', 'yellow', 'red', 'orange', 'blue', 'green'],
-                'is_valid': True
+                'colors': colors,
+                'confidences': confidences,
+                'is_valid': is_valid
             }
             
         except Exception as e:
