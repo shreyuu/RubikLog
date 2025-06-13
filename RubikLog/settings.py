@@ -12,34 +12,22 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-from decouple import config, UndefinedValueError
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
-try:
-    SECRET_KEY = config("DJANGO_SECRET_KEY")
-except UndefinedValueError:
-    SECRET_KEY = os.environ.get(
-        "DJANGO_SECRET_KEY",
-        "django-insecure-4+cbn@#2u0f6k3byy8be*u%!p#@8i!_shftz*pvlm1he0l@%&1",
-    )
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 # Remove or secure DEBUG in production
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-
-# Add security headers
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = "DENY"
-SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 # Fixed ALLOWED_HOSTS configuration
 ALLOWED_HOSTS = config(
     "DJANGO_ALLOWED_HOSTS",
     default="localhost,127.0.0.1",
-    cast=lambda v: [s.strip() for s in v.split(",")],
+    cast=Csv(),
 )
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -61,6 +49,7 @@ INSTALLED_APPS = [
 INSTALLED_APPS += [
     "drf_yasg",
     "django_filters",
+    "rest_framework.authtoken",
 ]
 
 MIDDLEWARE = [
@@ -114,12 +103,17 @@ WSGI_APPLICATION = "RubikLog.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_db_pool.db.backends.postgresql",
         "NAME": config("POSTGRES_DB", default="rubiklogdb"),
         "USER": config("POSTGRES_USER", default="postgres"),
         "PASSWORD": config("POSTGRES_PASSWORD", default=""),
         "HOST": config("POSTGRES_HOST", default="localhost"),
         "PORT": config("POSTGRES_PORT", default="5432"),
+        "POOL_OPTIONS": {
+            "POOL_SIZE": 20,
+            "MAX_OVERFLOW": 10,
+            "RECYCLE": 300,  # 5 minutes
+        },
     }
 }
 
@@ -186,11 +180,18 @@ REST_FRAMEWORK = {
     "DEFAULT_ORDERING_FIELDS": ["created_at", "time_taken"],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "50/day",  # Reduce rate limit
+        "anon": "50/day",
+        "user": "1000/day",
+        "cube_scan": "10/minute",  # Custom throttle class
     },
     "DEFAULT_CACHE_RESPONSE_TIMEOUT": CACHE_TTL,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
 
 # Database logging

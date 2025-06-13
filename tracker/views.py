@@ -20,6 +20,8 @@ import numpy as np
 import cv2
 import time
 import logging
+from django.utils.http import urlencode
+from .tasks import process_cube_image_async
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,12 @@ def log_query(query):
         raise
 
 
+def get_cache_key(request):
+    query_dict = request.query_params.copy()
+    sorted_query = urlencode(sorted(query_dict.items()))
+    return f"solves_list_{sorted_query}"
+
+
 # Create your views here.
 class SolveList(APIView):
     pagination_class = SolvePagination
@@ -63,7 +71,7 @@ class SolveList(APIView):
 
         try:
             # Generate cache key based on query parameters
-            cache_key = f"solves_list_{request.query_params}"
+            cache_key = get_cache_key(request)
 
             # Try to get from cache first
             cached_response = cache.get(cache_key)
@@ -188,36 +196,11 @@ class CubeScanView(APIView):
 
 @api_view(["POST"])
 def scan_cube(request):
-    try:
-        # Get image data from request
-        image_data = request.FILES.get("image")
-        if not image_data:
-            return JsonResponse({"error": "No image data received"}, status=400)
+    # Initial processing
+    image_data = request.FILES.get("image")
+    if not image_data:
+        return JsonResponse({"error": "No image data received"}, status=400)
 
-        # Convert image data to numpy array
-        nparr = np.frombuffer(image_data.read(), np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        # Process image with CubeScanner
-        scanner = CubeScanner()
-        result = scanner.process_frame(image)
-
-        if result is None:
-            return JsonResponse({"error": "Failed to process image"}, status=400)
-
-        # Convert numpy array to list for JSON serialization
-        result["preview"] = (
-            cv2.imencode(".jpg", result["preview"])[1].tobytes().decode("latin1")
-        )
-
-        return JsonResponse(
-            {
-                "colors": result["colors"],
-                "preview": result["preview"],
-                "is_valid": result["is_valid"],
-            }
-        )
-
-    except Exception as e:
-        print(f"Error in scan_cube: {str(e)}")  # Debug logging
-        return JsonResponse({"error": str(e)}, status=500)
+    # Process asynchronously
+    task = process_cube_image_async.delay(image_data)
+    return JsonResponse({"task_id": task.id})
