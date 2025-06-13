@@ -14,3 +14,4 @@ scikit-learn==1.4.1.post1
 asgiref==3.8.1
 sqlparse==0.5.3
 pytz==2024.2
+django-db-pool==1.0.0
