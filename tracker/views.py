@@ -91,13 +91,14 @@ class SolveList(APIView):
             # Query optimization - removed invalid prefetch_related("tags")
             solves = Solve.objects.filter(**filters).order_by(sort_by)
 
-            # Log the query plan
-            with connection.cursor() as cursor:
-                cursor.execute(f"EXPLAIN ANALYZE {solves.query}")
-                query_plan = cursor.fetchall()
-                logger.debug("Query plan:")
-                for row in query_plan:
-                    logger.debug(row[0])
+            # Log the query plan - only for PostgreSQL
+            if connection.vendor == "postgresql":
+                with connection.cursor() as cursor:
+                    cursor.execute(f"EXPLAIN ANALYZE {solves.query}")
+                    query_plan = cursor.fetchall()
+                    logger.debug("Query plan:")
+                    for row in query_plan:
+                        logger.debug(row[0])
 
             # Execute query with logging
             solves_list = log_query(solves)
@@ -142,6 +143,11 @@ class SolveList(APIView):
 class SolveDetail(APIView):
     def get_object(self, pk):
         return get_object_or_404(Solve, pk=pk)
+
+    def get(self, request, pk):
+        solve = self.get_object(pk)
+        serializer = SolveSerializer(solve)
+        return Response(serializer.data)
 
     def delete(self, request, pk):
         solve = self.get_object(pk)
