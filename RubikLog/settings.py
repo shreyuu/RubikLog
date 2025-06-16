@@ -92,7 +92,7 @@ WSGI_APPLICATION = "RubikLog.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Use SQLite for tests, PostgreSQL for development/production
-if TESTING:
+if TESTING or get_env_value("USE_SQLITE_FOR_TESTING", "False") == "True":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -140,9 +140,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "frontend/build/static"),
-]
+
+# Check if frontend build directory exists before adding it to STATICFILES_DIRS
+FRONTEND_BUILD_DIR = os.path.join(BASE_DIR, "frontend/build/static")
+STATICFILES_DIRS = []
+if os.path.exists(FRONTEND_BUILD_DIR):
+    STATICFILES_DIRS.append(FRONTEND_BUILD_DIR)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
