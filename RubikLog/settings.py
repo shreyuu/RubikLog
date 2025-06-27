@@ -5,6 +5,7 @@ Django settings for RubikLog project.
 from pathlib import Path
 import os
 import sys
+from decouple import config, Csv
 
 # Check if we're running tests
 TESTING = "test" in sys.argv
@@ -13,19 +14,12 @@ TESTING = "test" in sys.argv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Simple environment variable handling function
-def get_env_value(env_variable, default=""):
-    return os.environ.get(env_variable, default)
-
-
 # Security settings
-SECRET_KEY = get_env_value(
-    "DJANGO_SECRET_KEY", "django-insecure-key-for-development-only"
+SECRET_KEY = config(
+    "DJANGO_SECRET_KEY", default="django-insecure-key-for-development-only"
 )
-DEBUG = get_env_value("DEBUG", "True") == "True"
-ALLOWED_HOSTS = get_env_value("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-
-CORS_ALLOW_ALL_ORIGINS = True
+DEBUG = config("DEBUG", default=True, cast=bool)
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -61,8 +55,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
-# Or for development, you can use:
-CORS_ALLOW_ALL_ORIGINS = True
+# Only allow all origins in debug mode
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Allow larger file uploads
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -92,7 +86,7 @@ WSGI_APPLICATION = "RubikLog.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Use SQLite for tests, PostgreSQL for development/production
-if TESTING or get_env_value("USE_SQLITE_FOR_TESTING", "False") == "True":
+if TESTING or config("USE_SQLITE_FOR_TESTING", default=False, cast=bool):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -103,11 +97,11 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": get_env_value("POSTGRES_DB", "rubiklogdb"),
-            "USER": get_env_value("POSTGRES_USER", "postgres"),
-            "PASSWORD": get_env_value("POSTGRES_PASSWORD", ""),
-            "HOST": get_env_value("POSTGRES_HOST", "localhost"),
-            "PORT": get_env_value("POSTGRES_PORT", "5432"),
+            "NAME": config("POSTGRES_DB", default="rubiklogdb"),
+            "USER": config("POSTGRES_USER", default="postgres"),
+            "PASSWORD": config("POSTGRES_PASSWORD", default=""),
+            "HOST": config("POSTGRES_HOST", default="localhost"),
+            "PORT": config("POSTGRES_PORT", default="5432"),
         }
     }
 
@@ -186,21 +180,50 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Database logging - disable during testing
-if not TESTING:
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-            },
+# Enhanced logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        "loggers": {
-            "django.db.backends": {
-                "handlers": ["console"],
-                "level": "INFO",  # Change to INFO to reduce log noise
-                "propagate": False,
-            },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
-    }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "rubiklog.log",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"] if not TESTING else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "tracker": {
+            "handlers": ["console", "file"] if not TESTING else ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "INFO" if DEBUG else "WARNING",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}

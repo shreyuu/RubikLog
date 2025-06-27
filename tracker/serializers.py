@@ -1,13 +1,23 @@
 from rest_framework import serializers
-from .models import Solve
+from .models import Solve, VALID_MOVES
 import sys
 import os
 
 
 class SolveSerializer(serializers.ModelSerializer):
+    formatted_time = serializers.ReadOnlyField()
+
     class Meta:
         model = Solve
-        fields = ["id", "time_taken", "scramble", "created_at"]
+        fields = [
+            "id",
+            "time_taken",
+            "scramble",
+            "created_at",
+            "note",
+            "formatted_time",
+        ]
+        read_only_fields = ["created_at", "formatted_time"]
 
     def validate_time_taken(self, value):
         if value <= 0:
@@ -22,34 +32,33 @@ class SolveSerializer(serializers.ModelSerializer):
             return value
 
         # Skip validation when explicitly disabled for tests
-        # but NOT for the invalid_scramble test
         skip_validation = os.environ.get("SKIP_SCRAMBLE_VALIDATION", "False") == "True"
         if "test" in sys.argv and skip_validation:
             return value
 
-        valid_moves = set(
-            [
-                "R",
-                "L",
-                "U",
-                "D",
-                "F",
-                "B",
-                "R'",
-                "L'",
-                "U'",
-                "D'",
-                "F'",
-                "B'",
-                "R2",
-                "L2",
-                "U2",
-                "D2",
-                "F2",
-                "B2",
-            ]
-        )
-        moves = value.split()
-        if not all(move in valid_moves for move in moves):
-            raise serializers.ValidationError("Invalid scramble notation")
+        moves = value.strip().split()
+        invalid_moves = [move for move in moves if move not in VALID_MOVES]
+        if invalid_moves:
+            raise serializers.ValidationError(
+                f"Invalid scramble notation. Invalid moves: {', '.join(invalid_moves)}"
+            )
         return value
+
+    def validate_note(self, value):
+        if value and len(value) > 500:
+            raise serializers.ValidationError("Note cannot exceed 500 characters")
+        return value
+
+
+class SolveStatsSerializer(serializers.Serializer):
+    """Serializer for solve statistics"""
+
+    total_solves = serializers.IntegerField()
+    best_time = serializers.FloatField()
+    worst_time = serializers.FloatField()
+    average_time = serializers.FloatField()
+    total_solving_time = serializers.FloatField()
+    ao5 = serializers.FloatField(allow_null=True)  # Average of 5
+    ao12 = serializers.FloatField(allow_null=True)  # Average of 12
+    recent_average = serializers.FloatField(allow_null=True)
+    improvement_trend = serializers.CharField(max_length=20)

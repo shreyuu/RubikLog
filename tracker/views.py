@@ -1,20 +1,21 @@
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Min, Avg, Sum
+from django.db.models import Min, Max, Avg, Sum, Count
+from django.db.models.functions import Extract
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from .models import Solve
-from .serializers import SolveSerializer
-from .ml_service import CubeScanner
+from django.db import connection
 from django.core.cache import cache
 from django.conf import settings
 from django.db import connection
 from django.db.models.query import QuerySet
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 import base64
 import numpy as np
 import cv2
@@ -22,6 +23,12 @@ import time
 import logging
 from django.utils.http import urlencode
 from .tasks import process_cube_image_async
+from statistics import mean
+import math
+
+from .models import Solve
+from .serializers import SolveSerializer, SolveStatsSerializer
+from .ml_service import CubeScanner
 
 logger = logging.getLogger(__name__)
 
@@ -156,19 +163,90 @@ class SolveDetail(APIView):
 
 
 class SolveStats(APIView):
+    """Enhanced statistics with additional metrics"""
+
+    @method_decorator(cache_page(60))  # Cache for 1 minute
     def get(self, request):
-        solves = Solve.objects.all()
+        try:
+            solves = Solve.objects.all().order_by("-created_at")
 
-        stats = {
-            "total_solves": solves.count(),
-            "best_time": solves.aggregate(Min("time_taken"))["time_taken__min"],
-            "average_time": solves.aggregate(Avg("time_taken"))["time_taken__avg"],
-            "total_solving_time": solves.aggregate(Sum("time_taken"))[
-                "time_taken__sum"
-            ],
-        }
+            if not solves.exists():
+                return Response(
+                    {
+                        "total_solves": 0,
+                        "best_time": None,
+                        "worst_time": None,
+                        "average_time": None,
+                        "total_solving_time": None,
+                        "ao5": None,
+                        "ao12": None,
+                        "recent_average": None,
+                        "improvement_trend": "no_data",
+                    }
+                )
 
-        return Response(stats)
+            # Basic stats
+            stats_data = solves.aggregate(
+                total_solves=Count("id"),
+                best_time=Min("time_taken"),
+                worst_time=Max("time_taken"),
+                average_time=Avg("time_taken"),
+                total_solving_time=Sum("time_taken"),
+            )
+
+            # Calculate AO5 and AO12
+            recent_times = list(solves.values_list("time_taken", flat=True)[:12])
+
+            stats_data["ao5"] = None
+            stats_data["ao12"] = None
+
+            if len(recent_times) >= 5:
+                # AO5: remove best and worst, average the rest
+                ao5_times = sorted(recent_times[:5])
+                stats_data["ao5"] = mean(ao5_times[1:-1])
+
+            if len(recent_times) >= 12:
+                # AO12: remove best and worst, average the rest
+                ao12_times = sorted(recent_times)
+                stats_data["ao12"] = mean(ao12_times[1:-1])
+
+            # Recent average (last 10 solves)
+            if len(recent_times) >= 10:
+                stats_data["recent_average"] = mean(recent_times[:10])
+            else:
+                stats_data["recent_average"] = None
+
+            # Improvement trend
+            stats_data["improvement_trend"] = self._calculate_trend(recent_times)
+
+            serializer = SolveStatsSerializer(stats_data)
+            return Response(serializer.data)
+
+        except Exception as e:
+            logger.error(f"Error calculating stats: {str(e)}")
+            return Response(
+                {"error": "Failed to calculate statistics"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _calculate_trend(self, recent_times):
+        """Calculate improvement trend based on recent solves"""
+        if len(recent_times) < 6:
+            return "insufficient_data"
+
+        # Compare first half vs second half of recent times
+        mid = len(recent_times) // 2
+        first_half_avg = mean(recent_times[:mid])
+        second_half_avg = mean(recent_times[mid:])
+
+        improvement = (first_half_avg - second_half_avg) / first_half_avg * 100
+
+        if improvement > 5:
+            return "improving"
+        elif improvement < -5:
+            return "declining"
+        else:
+            return "stable"
 
 
 class CubeScanView(APIView):
@@ -210,3 +288,34 @@ def scan_cube(request):
     # Process asynchronously
     task = process_cube_image_async.delay(image_data)
     return JsonResponse({"task_id": task.id})
+
+
+def health_check(request):
+    """Basic health check endpoint"""
+    try:
+        # Test database connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+
+        # Test cache
+        cache.set("health_check", "ok", 30)
+        cache_status = cache.get("health_check")
+
+        checks = {"database": "ok", "cache": "ok" if cache_status == "ok" else "error"}
+
+        return JsonResponse({"status": "healthy", "checks": checks})
+
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JsonResponse({"status": "unhealthy", "error": str(e)}, status=503)
+
+
+def readiness_check(request):
+    """Readiness check endpoint"""
+    return JsonResponse({"status": "ready"})
+
+
+def liveness_check(request):
+    """Liveness check endpoint"""
+    return JsonResponse({"status": "alive"})

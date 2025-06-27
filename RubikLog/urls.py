@@ -20,6 +20,7 @@ from django.urls import path, include
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
+from tracker.views import health_check, readiness_check, liveness_check
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -39,4 +40,8 @@ urlpatterns = [
         schema_view.with_ui("swagger", cache_timeout=0),
         name="schema-swagger-ui",
     ),
+    # Health check endpoints
+    path("health/", health_check, name="health-check"),
+    path("ready/", readiness_check, name="readiness-check"),
+    path("alive/", liveness_check, name="liveness-check"),
 ]

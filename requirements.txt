@@ -16,6 +16,19 @@ pytz>=2024.2
 django-db-connection-pool>=1.2.0
 tensorflow-cpu>=2.15.0
 
+# Development and testing dependencies
+faker>=24.0.0
+django-extensions>=3.2.3
+coverage>=7.4.0
+pytest>=8.0.0
+pytest-django>=4.8.0
+pytest-cov>=4.0.0
+
+# Production optimizations
+redis>=5.0.0
+django-redis>=5.4.0
+celery>=5.3.0
+
 # For M1/M2 Macs, install separately:
 # pip install tensorflow-macos tensorflow-metal
 
