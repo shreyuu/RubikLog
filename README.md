@@ -132,6 +132,48 @@ npm start
 
 ---
 
+## Docker Deployment
+
+RubikLog can be easily deployed using Docker:
+
+```bash
+# Build and start containers
+docker-compose up -d
+
+# Access the application at http://localhost:8000
+```
+
+## Deployment
+
+### Render Deployment
+
+RubikLog is configured for deployment on [Render](https://render.com/) using the `render.yaml` file.
+
+1. Fork this repository
+2. Connect your fork to Render
+3. Create a new Web Service pointing to your repository
+4. Render will automatically detect the configuration and deploy the application
+
+## Development Environment
+
+### Backend Development
+
+```bash
+# Create and activate virtual environment
+python -m venv rubiklogenv
+source rubiklogenv/bin/activate  # or `rubiklogenv\Scripts\activate` on Windows
+
+# Install dependencies
+pip install -r [requirements.txt](http://_vscodecontentref_/1)
+
+# Set up environment variables
+cp [.env.example](http://_vscodecontentref_/2) .env
+# Edit .env with your configuration
+
+# Run development server
+python [manage.py](http://_vscodecontentref_/3) runserver
+```
+
 ## Testing
 
 Backend tests:
@@ -147,7 +189,13 @@ cd frontend
 npm test
 ```
 
----
+## API Documentation
+
+RubikLog provides comprehensive API documentation using Swagger/OpenAPI:
+
+- **Swagger UI**: Access interactive API documentation at `/api/swagger/`
+- **ReDoc**: Alternative API documentation view available at `/api/redoc/`
+- **OpenAPI Schema**: Raw schema available at `/api/schema/`
 
 ## Contributing
 
@@ -164,4 +212,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 Shreyash Meshram - [shreyashmeshram0031@gmail.com](mailto:shreyashmeshram0031@gmail.com)
-
