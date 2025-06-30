@@ -319,3 +319,42 @@ def readiness_check(request):
 def liveness_check(request):
     """Liveness check endpoint"""
     return JsonResponse({"status": "alive"})
+
+
+class SolveStatisticsService:
+    def __init__(self, user):
+        self.user = user
+
+    def get_base_stats(self):
+        """Get basic statistics for a user's solves"""
+        from django.db.models import Avg, Min, Max, StdDev, Count
+        from tracker.models import Solve
+
+        return Solve.objects.filter(user=self.user).aggregate(
+            avg_time=Avg("time"),
+            best_time=Min("time"),
+            worst_time=Max("time"),
+            std_dev=StdDev("time"),
+            total_solves=Count("id"),
+        )
+
+    def get_rolling_averages(self):
+        """Calculate Ao5, Ao12, etc."""
+        # Implementation for rolling averages
+
+    def get_time_trends(self, days=30):
+        """Get solve time trends over the specified period"""
+        from django.db.models import Avg
+        from django.utils import timezone
+        import datetime
+
+        solves = (
+            Solve.objects.filter(
+                user=self.user, date__gte=timezone.now() - datetime.timedelta(days=days)
+            )
+            .values("date__date")
+            .annotate(daily_avg=Avg("time"))
+            .order_by("date__date")
+        )
+
+        return list(solves)

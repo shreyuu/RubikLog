@@ -6,42 +6,86 @@ import os
 
 
 # Valid Rubik's cube moves for validation
-VALID_MOVES = frozenset([
-    "R", "L", "U", "D", "F", "B",
-    "R'", "L'", "U'", "D'", "F'", "B'",
-    "R2", "L2", "U2", "D2", "F2", "B2",
-    "M", "M'", "M2", "E", "E'", "E2", "S", "S'", "S2",  # Middle layer moves
-    "x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2",  # Rotations
-])
+VALID_MOVES = frozenset(
+    [
+        "R",
+        "L",
+        "U",
+        "D",
+        "F",
+        "B",
+        "R'",
+        "L'",
+        "U'",
+        "D'",
+        "F'",
+        "B'",
+        "R2",
+        "L2",
+        "U2",
+        "D2",
+        "F2",
+        "B2",
+        "M",
+        "M'",
+        "M2",
+        "E",
+        "E'",
+        "E2",
+        "S",
+        "S'",
+        "S2",  # Middle layer moves
+        "x",
+        "x'",
+        "x2",
+        "y",
+        "y'",
+        "y2",
+        "z",
+        "z'",
+        "z2",  # Rotations
+    ]
+)
+
+
+class CubeType(models.Model):
+    name = models.CharField(max_length=50)  # e.g., "3x3", "4x4", "Pyraminx"
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Solve(models.Model):
     time_taken = models.FloatField(
-        db_index=True,
-        help_text="Time taken to solve the cube in seconds"
+        db_index=True, help_text="Time taken to solve the cube in seconds"
     )
     scramble = models.CharField(
-        max_length=200, 
-        null=True, 
+        max_length=200,
+        null=True,
         blank=True,
-        help_text="Scramble sequence used for this solve"
+        help_text="Scramble sequence used for this solve",
     )
     created_at = models.DateTimeField(
-        auto_now_add=True, 
-        db_index=True,
-        help_text="When this solve was recorded"
+        auto_now_add=True, db_index=True, help_text="When this solve was recorded"
     )
     note = models.TextField(
-        blank=True,
-        max_length=500,
-        help_text="Optional notes about this solve"
+        blank=True, max_length=500, help_text="Optional notes about this solve"
     )
+    cube_type = models.ForeignKey(
+        CubeType, on_delete=models.CASCADE, related_name="solves"
+    )
+    is_pb = models.BooleanField(default=False)
+    tags = models.CharField(max_length=255, blank=True)  # Comma-separated tags
+    session = models.CharField(max_length=100, blank=True)
 
     class Meta:
         indexes = [
             models.Index(fields=["-created_at"]),
             models.Index(fields=["time_taken"]),
-            models.Index(fields=["created_at", "time_taken"]),  # Composite index for ordering
+            models.Index(
+                fields=["created_at", "time_taken"]
+            ),  # Composite index for ordering
         ]
         ordering = ["-created_at"]
 
