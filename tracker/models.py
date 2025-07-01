@@ -73,7 +73,7 @@ class Solve(models.Model):
         blank=True, max_length=500, help_text="Optional notes about this solve"
     )
     cube_type = models.ForeignKey(
-        CubeType, on_delete=models.CASCADE, related_name="solves"
+        CubeType, on_delete=models.CASCADE, related_name="solves", null=True, blank=True
     )
     is_pb = models.BooleanField(default=False)
     tags = models.CharField(max_length=255, blank=True)  # Comma-separated tags

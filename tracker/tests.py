@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from django.urls import reverse
 from django.core.exceptions import ValidationError
-from .models import Solve
+from .models import Solve, CubeType
 
 
 class SolveModelTests(TestCase):
@@ -68,7 +68,13 @@ class SolveModelTests(TestCase):
 class SolveTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.solve_data = {"time_taken": 10.5, "scramble": "R U R' U'"}
+        # Create a default cube type for tests
+        self.cube_type = CubeType.objects.create(name="3x3")
+        self.solve_data = {
+            "time_taken": 10.5,
+            "scramble": "R U R' U'",
+            "cube_type": self.cube_type.pk,
+        }
         self.url = reverse("solve-list")
         # Enable scramble validation skipping by default for most tests
         os.environ["SKIP_SCRAMBLE_VALIDATION"] = "True"

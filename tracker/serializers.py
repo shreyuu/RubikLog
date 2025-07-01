@@ -16,6 +16,10 @@ class SolveSerializer(serializers.ModelSerializer):
             "created_at",
             "note",
             "formatted_time",
+            "cube_type",
+            "is_pb",
+            "tags",
+            "session",
         ]
         read_only_fields = ["created_at", "formatted_time"]
 
