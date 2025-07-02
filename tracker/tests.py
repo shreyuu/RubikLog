@@ -70,7 +70,14 @@ class SolveTests(TestCase):
         self.client = APIClient()
         # Create a default cube type for tests
         self.cube_type = CubeType.objects.create(name="3x3")
+        # Use the primary key for API requests
         self.solve_data = {
+            "time_taken": 10.5,
+            "scramble": "R U R' U'",
+            "cube_type": self.cube_type.pk,
+        }
+        # But store the actual instance for model-level operations
+        self.solve_model_data = {
             "time_taken": 10.5,
             "scramble": "R U R' U'",
             "cube_type": self.cube_type,
@@ -105,7 +112,7 @@ class SolveTests(TestCase):
         self.assertEqual(Solve.objects.get().time_taken, 10.5)
 
     def test_delete_solve(self):
-        solve = Solve.objects.create(**self.solve_data)
+        solve = Solve.objects.create(**self.solve_model_data)
         url = reverse("solve-detail", kwargs={"pk": solve.pk})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
@@ -127,8 +134,10 @@ class SolveTests(TestCase):
 
     def test_get_solves(self):
         # Create a few solves
-        Solve.objects.create(**self.solve_data)
-        Solve.objects.create(time_taken=15.2, scramble="L D L' D'")
+        Solve.objects.create(**self.solve_model_data)
+        Solve.objects.create(
+            time_taken=15.2, scramble="L D L' D'", cube_type=self.cube_type
+        )
 
         # Fetch all solves
         response = self.client.get(self.url)
@@ -136,7 +145,7 @@ class SolveTests(TestCase):
         self.assertEqual(len(response.json()["results"]), 2)
 
     def test_get_single_solve(self):
-        solve = Solve.objects.create(**self.solve_data)
+        solve = Solve.objects.create(**self.solve_model_data)
         url = reverse("solve-detail", kwargs={"pk": solve.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
