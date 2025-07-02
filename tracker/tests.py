@@ -73,7 +73,7 @@ class SolveTests(TestCase):
         self.solve_data = {
             "time_taken": 10.5,
             "scramble": "R U R' U'",
-            "cube_type": self.cube_type.pk,
+            "cube_type": self.cube_type,
         }
         self.url = reverse("solve-list")
         # Enable scramble validation skipping by default for most tests
