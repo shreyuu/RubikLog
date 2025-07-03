@@ -168,35 +168,19 @@ class SolveStats(APIView):
     @method_decorator(cache_page(60))  # Cache for 1 minute
     def get(self, request):
         try:
-            solves = Solve.objects.all().order_by("-created_at")
+            # Get all solve times in descending order of creation date
+            solves = Solve.objects.order_by("-created_at")
+            recent_times = list(solves.values_list("time_taken", flat=True))
 
-            if not solves.exists():
-                return Response(
-                    {
-                        "total_solves": 0,
-                        "best_time": None,
-                        "worst_time": None,
-                        "average_time": None,
-                        "total_solving_time": None,
-                        "ao5": None,
-                        "ao12": None,
-                        "recent_average": None,
-                        "improvement_trend": "no_data",
-                    }
-                )
+            # Calculate statistics
+            stats_data = {}
 
             # Basic stats
-            stats_data = solves.aggregate(
-                total_solves=Count("id"),
-                best_time=Min("time_taken"),
-                worst_time=Max("time_taken"),
-                average_time=Avg("time_taken"),
-                total_solving_time=Sum("time_taken"),
-            )
+            stats_data["total_solves"] = len(recent_times)
+            stats_data["best_time"] = min(recent_times) if recent_times else None
+            stats_data["average_time"] = mean(recent_times) if recent_times else None
 
-            # Calculate AO5 and AO12
-            recent_times = list(solves.values_list("time_taken", flat=True)[:12])
-
+            # AO5 and AO12
             stats_data["ao5"] = None
             stats_data["ao12"] = None
 
@@ -207,7 +191,9 @@ class SolveStats(APIView):
 
             if len(recent_times) >= 12:
                 # AO12: remove best and worst, average the rest
-                ao12_times = sorted(recent_times)
+                ao12_times = sorted(
+                    recent_times[:12]
+                )  # Only take the 12 most recent solves
                 stats_data["ao12"] = mean(ao12_times[1:-1])
 
             # Recent average (last 10 solves)
