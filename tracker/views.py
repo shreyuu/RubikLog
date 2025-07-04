@@ -186,14 +186,14 @@ class SolveStats(APIView):
 
             if len(recent_times) >= 5:
                 # AO5: remove best and worst, average the rest
+                # Use the 5 most recent solves (which are already at the beginning of the list)
                 ao5_times = sorted(recent_times[:5])
                 stats_data["ao5"] = mean(ao5_times[1:-1])
 
             if len(recent_times) >= 12:
                 # AO12: remove best and worst, average the rest
-                ao12_times = sorted(
-                    recent_times[:12]
-                )  # Only take the 12 most recent solves
+                # Use the 12 most recent solves 
+                ao12_times = sorted(recent_times[:12])
                 stats_data["ao12"] = mean(ao12_times[1:-1])
 
             # Recent average (last 10 solves)
