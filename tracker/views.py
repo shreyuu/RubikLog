@@ -16,6 +16,7 @@ from django.db import connection
 from django.db.models.query import QuerySet
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.core.cache import cache
 import base64
 import numpy as np
 import cv2
@@ -35,9 +36,9 @@ logger = logging.getLogger(__name__)
 
 
 class SolvePagination(PageNumberPagination):
-    page_size = 10
+    page_size = 50
     page_size_query_param = "page_size"
-    max_page_size = 100
+    max_page_size = 200
 
 
 def log_query(query):
@@ -166,8 +167,15 @@ class SolveDetail(APIView):
 class SolveStats(APIView):
     """Enhanced statistics with additional metrics"""
 
-    @method_decorator(cache_page(60))  # Cache for 1 minute
     def get(self, request):
+        # Use user-specific caching if authenticated
+        cache_key = f"solve_stats_{request.user.id if request.user.is_authenticated else 'anonymous'}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
+        # Continue with calculation if no cache
         try:
             # Get all solve times in descending order of creation date
             solves = Solve.objects.order_by("-created_at")
@@ -208,8 +216,10 @@ class SolveStats(APIView):
             )
 
             serializer = SolveStatsSerializer(stats_data)
-            return Response(serializer.data)
 
+            cache_timeout = 60  # 1 minute
+            cache.set(cache_key, serializer.data, cache_timeout)
+            return Response(serializer.data)
         except Exception as e:
             logger.error(f"Error calculating stats: {str(e)}")
             return Response(
@@ -360,3 +370,14 @@ class SolveStatisticsService:
         )
 
         return list(solves)
+
+
+class SolveListView(APIView):
+    pagination_class = SolvePagination
+
+    def get(self, request):
+        solves = Solve.objects.order_by("-created_at")
+        paginator = self.pagination_class()
+        result_page = paginator.paginate_queryset(solves, request)
+        serializer = SolveSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
