@@ -23,8 +23,9 @@ import time
 import logging
 from django.utils.http import urlencode
 from .tasks import process_cube_image_async
-from statistics import mean
+from statistics import mean, stdev
 import math
+from django.utils import timezone
 
 from .models import Solve
 from .serializers import SolveSerializer, SolveStatsSerializer
@@ -181,29 +182,30 @@ class SolveStats(APIView):
             stats_data["average_time"] = mean(recent_times) if recent_times else None
 
             # AO5 and AO12
-            stats_data["ao5"] = None
-            stats_data["ao12"] = None
-
-            if len(recent_times) >= 5:
-                # AO5: remove best and worst, average the rest
-                # Use the 5 most recent solves (which are already at the beginning of the list)
-                ao5_times = sorted(recent_times[:5])
-                stats_data["ao5"] = mean(ao5_times[1:-1])
-
-            if len(recent_times) >= 12:
-                # AO12: remove best and worst, average the rest
-                # Use the 12 most recent solves 
-                ao12_times = sorted(recent_times[:12])
-                stats_data["ao12"] = mean(ao12_times[1:-1])
+            stats_data["ao5"] = self._calculate_average_of_n(recent_times, 5)
+            stats_data["ao12"] = self._calculate_average_of_n(recent_times, 12)
+            stats_data["ao50"] = self._calculate_average_of_n(recent_times, 50)
+            stats_data["ao100"] = self._calculate_average_of_n(recent_times, 100)
 
             # Recent average (last 10 solves)
-            if len(recent_times) >= 10:
-                stats_data["recent_average"] = mean(recent_times[:10])
-            else:
-                stats_data["recent_average"] = None
+            stats_data["recent_average"] = (
+                mean(recent_times[:10]) if len(recent_times) >= 10 else None
+            )
+
+            # Session stats
+            last_solve = solves.last()
+            stats_data["session_start"] = last_solve.created_at if last_solve else None
+            stats_data["solve_count_today"] = solves.filter(
+                created_at__date=timezone.now().date()
+            ).count()
 
             # Improvement trend
             stats_data["improvement_trend"] = self._calculate_trend(recent_times)
+
+            # Standard deviation (consistency metric)
+            stats_data["std_deviation"] = (
+                stdev(recent_times) if len(recent_times) >= 5 else None
+            )
 
             serializer = SolveStatsSerializer(stats_data)
             return Response(serializer.data)
@@ -211,9 +213,23 @@ class SolveStats(APIView):
         except Exception as e:
             logger.error(f"Error calculating stats: {str(e)}")
             return Response(
-                {"error": "Failed to calculate statistics"},
+                {"error": "Could not calculate statistics"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    def _calculate_average_of_n(self, times, n):
+        """Calculate average of N times, removing best and worst"""
+        if len(times) < n:
+            return None
+
+        # Take n most recent times and sort them
+        times_to_avg = sorted(times[:n])
+
+        # Remove best and worst
+        if n >= 3:
+            times_to_avg = times_to_avg[1:-1]
+
+        return mean(times_to_avg)
 
     def _calculate_trend(self, recent_times):
         """Calculate improvement trend based on recent solves"""
