@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import NotFound
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.http import JsonResponse
@@ -114,10 +115,31 @@ class SolveList(APIView):
 
             # Add proper pagination
             paginator = self.pagination_class()
-            page = paginator.paginate_queryset(solves_list, request)
-            if page is not None:
-                serializer = SolveSerializer(page, many=True)
-                return paginator.get_paginated_response(serializer.data)
+            try:
+                page = paginator.paginate_queryset(solves_list, request)
+                if page is not None:
+                    serializer = SolveSerializer(page, many=True)
+                    return paginator.get_paginated_response(serializer.data)
+            except NotFound:
+                # If the page is out of range, return the last page
+                try:
+                    page_number = int(paginator.get_page_number(request, paginator))
+                    if page_number > 1:
+                        # Redirect to the last page if the requested page is too high
+                        paginator.page_size = self.pagination_class.page_size
+                        paginator.page_query_param = (
+                            self.pagination_class.page_query_param
+                        )
+                        last_page = math.ceil(
+                            Solve.objects.count() / paginator.page_size
+                        )
+                        request.query_params._mutable = True
+                        request.query_params[paginator.page_query_param] = last_page
+                        request.query_params._mutable = False
+                        return self.get(request)
+                except (ValueError, TypeError):
+                    # Handle case where page_number is not an integer
+                    pass
 
             # Fallback if pagination fails
             serializer = SolveSerializer(solves_list, many=True)
