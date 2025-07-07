@@ -156,27 +156,19 @@ function App() {
         return formatTime(bestTime);
     };
 
-    const getAo5 = (solves) => {
-        if (!Array.isArray(solves) || solves.length < 5) return "-";
-        const recent5 = solves
-            .slice(-5)
+    const getAverage = (solves, n) => {
+        if (!Array.isArray(solves) || solves.length < n) return "-";
+        const recentSolves = solves
+            .slice(-n)
             .map((solve) => solve.time_taken)
             .sort((a, b) => a - b);
         // Remove best and worst times
-        const sum = recent5.slice(1, -1).reduce((a, b) => a + b, 0);
-        return (sum / 3).toFixed(2);
+        const sum = recentSolves.slice(1, -1).reduce((a, b) => a + b, 0);
+        return (sum / (n - 2)).toFixed(2);
     };
 
-    const getAo12 = (solves) => {
-        if (!Array.isArray(solves) || solves.length < 12) return "-";
-        const recent12 = solves
-            .slice(-12)
-            .map((solve) => solve.time_taken)
-            .sort((a, b) => a - b);
-        // Remove best and worst times
-        const sum = recent12.slice(1, -1).reduce((a, b) => a + b, 0);
-        return (sum / 10).toFixed(2);
-    };
+    const getAo5 = (solves) => getAverage(solves, 5);
+    const getAo12 = (solves) => getAverage(solves, 12);
 
     const memoizedGetAo5 = useMemo(() => getAo5(solves), [solves]);
     const memoizedGetAo12 = useMemo(() => getAo12(solves), [solves]);
