@@ -145,9 +145,18 @@ function App() {
         const time = parseFloat(timeString);
         if (isNaN(time)) return "Invalid time";
 
-        const minutes = Math.floor(time / 60);
-        const seconds = (time % 60).toFixed(2);
-        return minutes > 0 ? `${minutes}:${seconds.padStart(5, "0")}` : seconds;
+        if (time < 60) {
+            return `${time.toFixed(2)}s`;
+        } else if (time < 3600) {
+            const minutes = Math.floor(time / 60);
+            const seconds = time % 60;
+            return `${minutes}:${seconds.toFixed(2).padStart(5, '0')}`;
+        } else {
+            const hours = Math.floor(time / 3600);
+            const minutes = Math.floor((time % 3600) / 60);
+            const seconds = time % 60;
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toFixed(2).padStart(5, '0')}`;
+        }
     };
 
     const getBestTime = (solves) => {
@@ -499,7 +508,7 @@ function App() {
                                         : "text-gray-800 dark:text-gray-100"
                                     }`}
                             >
-                                {time.toFixed(2)}s
+                                {formatTime(time)}
                             </div>
                             <div className="text-gray-600 dark:text-gray-400 text-lg">
                                 {isHolding
