@@ -165,16 +165,18 @@ class SolveDetail(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# Cache the whole view for 5 minutes
+@method_decorator(cache_page(60 * 5), name="dispatch")
 class SolveStats(APIView):
     """Enhanced statistics with additional metrics"""
 
+    # For more granular caching:
     def get(self, request):
-        # Use user-specific caching if authenticated
-        cache_key = f"solve_stats_{request.user.id if request.user.is_authenticated else 'anonymous'}"
-        cached_data = cache.get(cache_key)
+        cache_key = f"solve_stats_{request.user.id}"
+        cached_stats = cache.get(cache_key)
 
-        if cached_data:
-            return Response(cached_data)
+        if cached_stats:
+            return Response(cached_stats)
 
         # Continue with calculation if no cache
         try:
@@ -216,10 +218,8 @@ class SolveStats(APIView):
                 stdev(recent_times) if len(recent_times) >= 5 else None
             )
 
+            cache.set(cache_key, stats_data, 60 * 5)  # Cache for 5 minutes
             serializer = SolveStatsSerializer(stats_data)
-
-            cache_timeout = 60  # 1 minute
-            cache.set(cache_key, serializer.data, cache_timeout)
             return Response(serializer.data)
         except Exception as e:
             logger.error(f"Error calculating stats: {str(e)}")
@@ -247,16 +247,22 @@ class SolveStats(APIView):
         if len(recent_times) < 6:
             return "insufficient_data"
 
-        # Compare first half vs second half of recent times
-        mid = len(recent_times) // 2
-        first_half_avg = mean(recent_times[:mid])
-        second_half_avg = mean(recent_times[mid:])
+        # Use numpy for faster calculations if you have many solves
+        import numpy as np
+
+        recent_array = np.array(recent_times)
+        mid = len(recent_array) // 2
+
+        first_half_avg = np.mean(recent_array[:mid])
+        second_half_avg = np.mean(recent_array[mid:])
 
         improvement = (first_half_avg - second_half_avg) / first_half_avg * 100
 
-        if improvement > 5:
+        # Use constants for magic numbers
+        SIGNIFICANT_IMPROVEMENT = 5
+        if improvement > SIGNIFICANT_IMPROVEMENT:
             return "improving"
-        elif improvement < -5:
+        elif improvement < -SIGNIFICANT_IMPROVEMENT:
             return "declining"
         else:
             return "stable"
