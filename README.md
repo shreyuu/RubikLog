@@ -48,7 +48,7 @@ RubikLog/
 - Python 3.10+
 - Node.js 18+
 - PostgreSQL 14+
-- Webcam (for cube scanning)
+<!-- - Webcam (for cube scanning) -->
 
 ### Key Dependencies
 
