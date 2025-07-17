@@ -23,14 +23,14 @@ class SolveSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at", "formatted_time"]
 
-    def validate_time_taken(self, value):
+    def validate_time_taken(self, value: float) -> float:
         if value <= 0:
             raise serializers.ValidationError("Time taken must be positive")
         if value > 3600:
             raise serializers.ValidationError("Time taken cannot exceed 1 hour")
         return value
 
-    def validate_scramble(self, value):
+    def validate_scramble(self, value: str) -> str:
         # Skip empty scrambles
         if not value:
             return value
@@ -48,7 +48,7 @@ class SolveSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_note(self, value):
+    def validate_note(self, value: str) -> str:
         if value and len(value) > 500:
             raise serializers.ValidationError("Note cannot exceed 500 characters")
         return value

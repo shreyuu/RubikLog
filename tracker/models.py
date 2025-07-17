@@ -52,7 +52,7 @@ class CubeType(models.Model):
     name = models.CharField(max_length=50)  # e.g., "3x3", "4x4", "Pyraminx"
     description = models.TextField(blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -89,10 +89,10 @@ class Solve(models.Model):
         ]
         ordering = ["-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.time_taken}s - {self.created_at.strftime('%d %b %Y %H:%M:%S')}"
 
-    def clean(self):
+    def clean(self) -> None:
         # Validate time_taken
         if self.time_taken is not None:
             if self.time_taken <= 0:
@@ -114,12 +114,12 @@ class Solve(models.Model):
                     f"Invalid scramble notation. Invalid moves: {', '.join(invalid_moves)}"
                 )
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         self.full_clean()
         super().save(*args, **kwargs)
 
     @property
-    def formatted_time(self):
+    def formatted_time(self) -> str:
         """Return formatted time string"""
         if self.time_taken < 60:
             return f"{self.time_taken:.2f}s"

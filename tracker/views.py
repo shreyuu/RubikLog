@@ -28,6 +28,8 @@ from .tasks import process_cube_image_async
 from statistics import mean, stdev
 import math
 from django.utils import timezone
+from typing import Any
+from rest_framework.request import Request
 
 from .models import Solve
 from .serializers import SolveSerializer, SolveStatsSerializer
@@ -75,7 +77,7 @@ class SolveList(APIView):
         ],
         responses={200: SolveSerializer(many=True)},
     )
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         start_time = time.time()
         logger.info("Starting SolveList.get request")
 
@@ -131,7 +133,7 @@ class SolveList(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         logger.info("Starting SolveList.post request")
         try:
             serializer = SolveSerializer(data=request.data)
@@ -151,15 +153,15 @@ class SolveList(APIView):
 
 
 class SolveDetail(APIView):
-    def get_object(self, pk):
+    def get_object(self, pk: int) -> Solve:
         return get_object_or_404(Solve, pk=pk)
 
-    def get(self, request, pk):
+    def get(self, request: Request, pk: int) -> Response:
         solve = self.get_object(pk)
         serializer = SolveSerializer(solve)
         return Response(serializer.data)
 
-    def delete(self, request, pk):
+    def delete(self, request: Request, pk: int) -> Response:
         solve = self.get_object(pk)
         solve.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -171,7 +173,7 @@ class SolveStats(APIView):
     """Enhanced statistics with additional metrics"""
 
     # For more granular caching:
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         cache_key = f"solve_stats_{request.user.id}"
         cached_stats = cache.get(cache_key)
 
@@ -269,10 +271,10 @@ class SolveStats(APIView):
 
 
 class CubeScanView(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             # Get base64 image from request
-            image_data = request.data.get("image")
+            image_data = request.data.get("image") if isinstance(request.data, dict) else None
             if not image_data:
                 return Response(
                     {"error": "No image data provided"},
