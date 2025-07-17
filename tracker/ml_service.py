@@ -5,12 +5,13 @@ from tensorflow.keras.layers import Dense, LSTM
 import cv2
 import logging
 from tensorflow.keras import models
+from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class CubeSolvePredictor:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = Sequential(
             [
                 LSTM(64, input_shape=(None, 5), return_sequences=True),
@@ -22,7 +23,7 @@ class CubeSolvePredictor:
         self.model.compile(optimizer="adam", loss="mse")
         self.scaler = StandardScaler()
 
-    def preprocess_data(self, solves):
+    def preprocess_data(self, solves: List[Any]) -> np.ndarray:
         """Preprocess solve data for prediction"""
         features = []
         for solve in solves:
@@ -37,7 +38,7 @@ class CubeSolvePredictor:
             )
         return np.array(features)
 
-    def predict_next_solve(self, recent_solves):
+    def predict_next_solve(self, recent_solves: List[Any]) -> Optional[float]:
         """Predict next solve time based on recent solves"""
         if len(recent_solves) < 5:
             return None
@@ -51,7 +52,7 @@ class CubeSolvePredictor:
 
 
 class CubeScanner:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = None
         self.scaler = None
         self._is_initialized = False
@@ -62,7 +63,7 @@ class CubeScanner:
         self.frame_skip = 2  # Process every nth frame
         self.frame_count = 0
 
-    def _initialize(self):
+    def _initialize(self) -> None:
         """Lazy initialization of TensorFlow and model"""
         if not self._is_initialized:
             try:
@@ -84,9 +85,9 @@ class CubeScanner:
                 logger.error(f"Failed to initialize TensorFlow: {str(e)}")
                 raise
 
-    def _initialize_color_ranges(self):
+    def _initialize_color_ranges(self) -> None:
         # Adjusted HSV ranges for better color detection
-        self.color_ranges = {
+        self.color_ranges: Dict[str, Tuple[List[int], List[int]]] = {
             "white": ([0, 0, 180], [180, 30, 255]),
             "yellow": ([25, 100, 100], [35, 255, 255]),
             "red": ([0, 150, 150], [10, 255, 255]),
@@ -95,7 +96,7 @@ class CubeScanner:
             "green": ([45, 150, 150], [75, 255, 255]),
         }
 
-    def process_frame(self, image_bytes):
+    def process_frame(self, image_bytes: bytes) -> Optional[Dict[str, Any]]:
         """Process a frame and return cube colors"""
         try:
             # Convert image bytes to numpy array
@@ -135,7 +136,7 @@ class CubeScanner:
             logger.error(f"Error processing frame: {str(e)}")
             return None
 
-    def _process_cell(self, hsv, i, j, cell_height, cell_width):
+    def _process_cell(self, hsv: np.ndarray, i: int, j: int, cell_height: int, cell_width: int) -> Tuple[str, float]:
         """Process individual cell with confidence score"""
         center_y = (i * cell_height + (i + 1) * cell_height) // 2
         center_x = (j * cell_width + (j + 1) * cell_width) // 2
@@ -147,7 +148,7 @@ class CubeScanner:
 
         return self._get_dominant_color_with_confidence(section)
 
-    def _get_dominant_color_with_confidence(self, section):
+    def _get_dominant_color_with_confidence(self, section: np.ndarray) -> Tuple[str, float]:
         """
         Determine the dominant color in a section with confidence score
         Returns: (color_name, confidence_score)
@@ -175,7 +176,7 @@ class CubeScanner:
 
         return (dominant_color, max_confidence)
 
-    def _draw_alignment_guides(self, image):
+    def _draw_alignment_guides(self, image: np.ndarray) -> None:
         """Draw alignment guides for better cube positioning"""
         h, w = image.shape[:2]
         color = (0, 255, 0)  # Green guides
@@ -186,8 +187,8 @@ class CubeScanner:
         cv2.line(image, (center_x, center_y - 20), (center_x, center_y + 20), color, 1)
 
     def _draw_cell_visualization(
-        self, preview, i, j, cell_height, cell_width, color, confidence
-    ):
+        self, preview: np.ndarray, i: int, j: int, cell_height: int, cell_width: int, color: str, confidence: float
+    ) -> None:
         """Draw cell visualization with color and confidence indicator"""
         x1 = j * cell_width
         y1 = i * cell_height
@@ -219,7 +220,7 @@ class CubeScanner:
             1,
         )
 
-    def _validate_colors(self, colors):
+    def _validate_colors(self, colors: List[str]) -> bool:
         """
         Validate detected colors for a cube face
         Returns: bool indicating if the detected colors form a valid cube face
@@ -228,7 +229,7 @@ class CubeScanner:
             return False
 
         # Count occurrences of each color
-        color_counts = {}
+        color_counts: Dict[str, int] = {}
         for color in colors:
             if color == "unknown":
                 return False
