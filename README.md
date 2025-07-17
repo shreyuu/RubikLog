@@ -7,7 +7,7 @@ RubikLog is a Django-based web application for tracking Rubik's Cube solving tim
 - **Timer**: Space bar-controlled timer with hold-to-ready functionality
 - **Scramble Generator**: Built-in scramble generator and manual entry
 - **Computer Vision**: Cube state detection using webcam
-- **Statistics**: Track best times, Ao5, Ao12, and solve history
+- **Statistics**: Track best times, count, Ao5, Ao12, and solve history
 - **Dark Mode**: Toggle between light and dark themes
 - **Frontend**: Built with ReactJS and styled using TailwindCSS
 - **Backend**: Django REST framework with PostgreSQL database
