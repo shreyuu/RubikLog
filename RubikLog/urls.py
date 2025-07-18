@@ -34,14 +34,11 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("tracker.urls")),
-    path(
-        "api/docs/",
-        schema_view.with_ui("swagger", cache_timeout=0),
-        name="schema-swagger-ui",
-    ),
-    # Health check endpoints
-    path("health/", health_check, name="health-check"),
-    path("ready/", readiness_check, name="readiness-check"),
-    path("alive/", liveness_check, name="liveness-check"),
+    path("api/v1/", include(([
+        path("", include("tracker.urls")),
+        path("docs/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+        path("health/", health_check, name="health-check"),
+        path("ready/", readiness_check, name="readiness-check"),
+        path("alive/", liveness_check, name="liveness-check"),
+    ], "api"))),
 ]
