@@ -7,7 +7,7 @@ import { generateScrambleFromColors } from "./utils/cubeNotation";
 import ScrambleVisualizer from './components/ScrambleVisualizer';
 
 // Update API_URL to use relative path
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 const TIMEOUT_DURATION = 15000; // 15 seconds
 const MAX_RETRIES = 3;
