@@ -53,13 +53,16 @@ MIDDLEWARE = [
 ]
 
 # Allow communication from React frontend
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000",
+    cast=Csv(),
+)
 
-# Only allow all origins in debug mode
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# Do NOT use CORS_ALLOW_ALL_ORIGINS in production
+if not DEBUG:
+    if os.environ.get("CORS_ALLOW_ALL_ORIGINS", "False").lower() == "true":
+        raise RuntimeError("CORS_ALLOW_ALL_ORIGINS must not be enabled in production!")
 
 # Allow larger file uploads
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
