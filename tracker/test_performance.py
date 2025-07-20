@@ -39,7 +39,7 @@ class PerformanceTests(TransactionTestCase):
         start_time = time.time()
 
         # Test list query
-        response = self.client.get("/api/solves/")
+        response = self.client.get("/api/v1/solves/")
 
         end_time = time.time()
         query_time = end_time - start_time
@@ -86,12 +86,12 @@ class PerformanceTests(TransactionTestCase):
 
         # First request (should cache)
         start_time = time.time()
-        response1 = self.client.get("/api/solves/")
+        response1 = self.client.get("/api/v1/solves/")
         first_request_time = time.time() - start_time
 
         # Second request (should use cache)
         start_time = time.time()
-        response2 = self.client.get("/api/solves/")
+        response2 = self.client.get("/api/v1/solves/")
         second_request_time = time.time() - start_time
 
         self.assertEqual(response1.status_code, 200)

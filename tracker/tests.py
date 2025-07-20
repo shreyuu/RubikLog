@@ -82,7 +82,7 @@ class SolveTests(TestCase):
             "scramble": "R U R' U'",
             "cube_type": self.cube_type,
         }
-        self.url = reverse("solve-list")
+        self.url = reverse("api:solve-list")
         # Enable scramble validation skipping by default for most tests
         os.environ["SKIP_SCRAMBLE_VALIDATION"] = "True"
 
@@ -180,20 +180,20 @@ class CubeScannerTests(TestCase):
 
 class HealthCheckTests(TestCase):
     def test_health_check_endpoint(self):
-        response = self.client.get("/health/")
+        response = self.client.get("/api/v1/health/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIn("status", data)
         self.assertIn("checks", data)
 
     def test_readiness_check_endpoint(self):
-        response = self.client.get("/ready/")
+        response = self.client.get("/api/v1/ready/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["status"], "ready")
 
     def test_liveness_check_endpoint(self):
-        response = self.client.get("/alive/")
+        response = self.client.get("/api/v1/alive/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["status"], "alive")
@@ -202,7 +202,7 @@ class HealthCheckTests(TestCase):
 class PaginationTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = reverse("solve-list")
+        self.url = reverse("api:solve-list")
         # Enable scramble validation skipping for pagination tests
         os.environ["SKIP_SCRAMBLE_VALIDATION"] = "True"
 

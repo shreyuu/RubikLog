@@ -9,7 +9,7 @@ import json
 class APIIntegrationTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.solve_list_url = reverse("solve-list")
+        self.solve_list_url = reverse("api:solve-list")
 
     def test_full_crud_workflow(self):
         # Create
