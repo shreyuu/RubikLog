@@ -26,7 +26,7 @@ class APIIntegrationTests(TestCase):
         solve_id = json.loads(create_response.content)["id"]
 
         # Read
-        detail_url = reverse("solve-detail", kwargs={"pk": solve_id})
+        detail_url = reverse("api:solve-detail", kwargs={"pk": solve_id})
         read_response = self.client.get(detail_url)
         self.assertEqual(read_response.status_code, status.HTTP_200_OK)
         read_data = json.loads(read_response.content)
@@ -80,7 +80,7 @@ class APIIntegrationTests(TestCase):
         results = data["results"]
         times = [solve["time_taken"] for solve in results]
         self.assertEqual(times, sorted(times))
-        response = self.client.get(reverse("solve-detail", kwargs={"pk": 999}))
+        response = self.client.get(reverse("api:solve-detail", kwargs={"pk": 999}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
         # Test validation errors
@@ -89,7 +89,7 @@ class APIIntegrationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_cube_scan_endpoint(self):
-        scan_url = reverse("scan-cube")
+        scan_url = reverse("api:scan-cube")
 
         # Test with missing image data
         response = self.client.post(scan_url, {}, format="json")

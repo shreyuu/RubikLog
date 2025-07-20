@@ -113,7 +113,7 @@ class SolveTests(TestCase):
 
     def test_delete_solve(self):
         solve = Solve.objects.create(**self.solve_model_data)
-        url = reverse("solve-detail", kwargs={"pk": solve.pk})
+        url = reverse("api:solve-detail", kwargs={"pk": solve.pk})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Solve.objects.count(), 0)
@@ -146,7 +146,7 @@ class SolveTests(TestCase):
 
     def test_get_single_solve(self):
         solve = Solve.objects.create(**self.solve_model_data)
-        url = reverse("solve-detail", kwargs={"pk": solve.pk})
+        url = reverse("api:solve-detail", kwargs={"pk": solve.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["time_taken"], solve.time_taken)
